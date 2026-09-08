@@ -1,9 +1,7 @@
 {
-  "final_tumor_count": {
-    "+T": 30,
-    "control": 40
-  },
-  "cytotoxicity_pct": 25.0,
-  "behavior": "net tumor reduction vs. matched no-T control is positive",
+  "metric": "cytotoxicity % = (control - experiment)/control, per seed",
+  "cytotoxicity_pct": "10.6 \u00b1 7.6",
+  "positive_seeds": "5/6",
+  "behavior": "mean cytotoxicity vs. matched no-T control is positive",
   "passed": true
 }

@@ -21,20 +21,26 @@ See [PORT_PLAN.md](PORT_PLAN.md) for the architecture, decisions, and milestones
 
 ## What it reproduces
 
-The showcase investigation (`investigations/tumor-tcell-showcase/`) recovers the
-paper's central finding — IFNg-driven tumor phenotype transformation gates
-therapeutic T-cell efficacy — at a tractable scale, across three studies (each
-with an interactive population time-series and a spatial animation):
+The showcase investigation (`investigations/tumor-tcell-showcase/`) reconstructs
+the paper's mechanism and reports every study across **6 replicate seeds** (mean
+± std), separating what holds robustly at tractable scale from what is
+scale-limited. Each study has an interactive mean±std time-series and a spatial
+animation.
 
-| Study | Result (single seed, ~10 h sim) |
+**Robust across seeds (the cell + cytokine mechanism):**
+
+| Study | Result (6 seeds, ~10 h sim) |
 |---|---|
-| **tcell-efficacy-pd1** | T cells suppress tumor growth; **25% PD1+ suppresses more than 75% PD1+** (13.6% vs 10.2% vs no-T control) |
-| **phenotype-conversion** | PDL1p tumor fraction **21.6% with active T cells vs 10.2% without**; IFNg field 6.7 vs 0 ng/mL |
-| **killing-assay-cytotoxicity** | **25% cytotoxicity** vs a matched no-T control |
+| **tcell-exhaustion** | Exhausted (PD1+) fraction tracks the starting PD1+ fraction: **63 ± 22% (75% start) vs 16 ± 11% (25% start)** — 6/6 seeds |
+| **phenotype-conversion** | Active T cells secrete a measurable **IFNg field in 6/6 seeds; 0/6 without** |
+| **killing-assay-cytotoxicity** | **cytotoxicity ~11 ± 8%** vs matched no-T control (positive in 5/6 seeds) |
 
-Effects are directional at reduced scale (tens of cells, tens of hours); the
-studies document the parameters to reach the paper's full-scale figures
-(1200 cells, 3 days).
+**Scale-limited (documented, not claimed):** population tumor-count suppression
+and the 25%<75% PD1+ efficacy *ordering* do **not** separate from growth noise at
+this scale (25%>75% in only 3/6 seeds), and the PDL1p conversion *fraction* is
+directional only (2/6). These need paper-scale runs (1200 cells, 3 days) — a
+mini/overnight job — to reach significance. See `PORT_PLAN.md` and the
+investigation's caveats.
 
 ## Processes & composites
 
@@ -54,5 +60,5 @@ pytest                     # 17 tests
 ## Run a study locally
 
 ```bash
-python studies/tcell-efficacy-pd1/sims/run.py   # prints the verdict, writes viz/*.html
+python studies/tcell-exhaustion/sims/run.py   # prints the verdict, writes viz/*.html
 ```

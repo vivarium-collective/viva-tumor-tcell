@@ -1,0 +1,69 @@
+# tcell-exhaustion/study.yaml — schema v4
+schema_version: 4
+name: tcell-exhaustion
+title: "T-cell exhaustion vs. starting PD1+ fraction"
+created: '2026-09-08'
+status: complete
+design_status: complete
+implementation_status: complete
+simulation_status: ran
+phase: Evaluate
+
+question: |
+  Does the exhausted (PD1+) T-cell fraction over time depend on the fraction of T cells
+  seeded as exhausted, and is that dependence robust across seeds?
+
+study_card:
+  goal: "Show the robust, T-cell-intrinsic exhaustion dynamic that underlies the paper's efficacy-vs-exhaustion story."
+  mechanism: "PD1- T cells exhaust to PD1+ after repeated TCR-engagement/refractory cycles; PD1+ cells also die faster next to PDL1+ tumors. Seeding more PD1+ cells raises the exhausted fraction."
+  expected_result: "The end PD1+ fraction is much higher when 75% (vs 25%) of T cells start exhausted, in every seed."
+  main_expert_question: "Do the refractory-cycle and death-rate parameters give the right exhaustion timescale vs. the paper's 3-day runs?"
+
+biological_summary: |
+  T cells seeded around a tumor mass were followed for ~10 h across 6 seeds. When 75% of T
+  cells started exhausted (PD1+), the exhausted fraction ended near 63% (± 22); when only 25%
+  started exhausted it ended near 16% (± 11). The ordering held in all 6 seeds — a robust,
+  cell-intrinsic dynamic. (Net tumor-count suppression, by contrast, did not separate from
+  growth noise at this scale — see the investigation's caveats.)
+
+expected_behavior:
+  - name: exhaustion_tracks_starting_fraction
+    en: "The exhausted (PD1+) T-cell fraction is higher with a 75% PD1+ start than a 25% PD1+ start."
+    measure: "final PD1+ T-cell fraction, mean over 6 seeds, per starting condition"
+    expect: "pd1p_end(75% start) > pd1p_end(25% start)"
+
+behavior_tests:
+  - name: exhaustion_tracks_starting_fraction
+    measure: "final PD1+ T-cell fraction (25% start vs 75% start), 6 seeds"
+    expect: "mean pd1p_end(75%) > mean pd1p_end(25%)"
+    result: "PASS: 75% start ~63±22% vs 25% start ~16±11% end PD1+ (6/6 seeds)"
+
+report:
+  title: "T-cell exhaustion vs. starting PD1+ fraction"
+  verdict: passing
+  confidence: high
+  evidence_quality: replicated
+  objective: "Demonstrate the robust exhaustion dependence on the starting PD1+ fraction."
+  conclusion: |
+    Across 6 seeds the exhausted (PD1+) T-cell fraction is far higher when more T cells start
+    exhausted — a clean, replicated reproduction of the paper's T-cell exhaustion dynamic.
+  caveat: |
+    This is the T-cell-intrinsic half of the efficacy story. The population consequence
+    (lower tumor suppression when more T cells are exhausted) is not separable from growth
+    noise at this reduced scale and needs paper-scale runs.
+
+readouts:
+  - "PD1+ T-cell fraction over time (25% vs 75% start), mean ± std"
+
+canonical_runs:
+  - name: exhaustion-25-vs-75
+    script: studies/tcell-exhaustion/sims/run.py
+
+visualizations:
+  - {name: pd1p_fraction, path: viz/pd1p_fraction.html}
+  - {name: spatial_75pct, path: viz/spatial_75pct.html}
+
+baseline:
+  - name: baseline
+    composite: viva_tumor_tcell.composites.microenvironment.tumor_microenvironment
+    params: {n_tumors: 40, n_tcells: 12, pd1_positive_frac: 0.75}

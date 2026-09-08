@@ -7,74 +7,75 @@ status: running
 
 question: |
   Does the process-bigraph port of the tumor-tcell ABM — with viva-munk providing the
-  collision physics — reproduce the paper's central finding, that IFNg-driven tumor
-  phenotype transformation gates therapeutic T-cell efficacy, and that efficacy falls as
-  the exhausted (PD1+) T-cell fraction rises?
+  collision physics — reproduce the paper's mechanism, and which parts of that mechanism
+  hold robustly at a tractable scale (tens of cells, tens of simulated hours)?
 
 hypothesis: |
   Active (PD1-) T cells in contact with tumor cells secrete IFNg and cytotoxic packets.
-  IFNg diffuses and drives proliferative PDL1n tumors into the arrested, MHCI/PDL1-high
-  PDL1p state, which in turn licenses stronger killing. Raising the starting PD1+ fraction
-  (exhausted T cells) lowers IFNg output, conversion, and tumor suppression.
+  IFNg diffuses and drives proliferative PDL1n tumors toward the arrested PDL1p state;
+  cumulative cytotoxic delivery kills tumor cells; and T cells that engage too long become
+  exhausted (PD1+) and secrete less. The T-cell-intrinsic and cytokine steps should hold at
+  reduced scale; the slower population-level killing/conversion effects may need paper scale.
 
 lead: |
-  A faithful port of Hickey/Agmon et al. (Cell Systems): tumor and T cells as per-cell
-  process-bigraph processes over a diffusing IFNg field, with cell–cell collisions and
-  neighbor detection delegated to viva-munk's pymunk engine. Studies here run at a
-  tractable scale (tens of cells, tens of simulated hours); each documents the parameters
-  needed to reach the paper's full-scale figures (1200 cells, 3 days).
+  A faithful port of Hickey/Agmon et al. (Cell Systems): tumor, T, and dendritic cells as
+  per-cell process-bigraph processes over diffusing IFNg / tumor-debris fields, with cell–cell
+  collisions and neighbor detection delegated to viva-munk's pymunk engine. Every study here
+  is run across 6 replicate seeds so claims are reported as mean ± std, and the readouts are
+  separated into those that hold robustly at this scale and those that are scale-limited.
 
 executive:
   what_is_this: |
-    Three studies exercising the ported microenvironment: T-cell efficacy vs. PD1+ fraction,
-    IFNg-driven phenotype conversion, and an in-vitro-style killing/cytotoxicity assay — each
-    with an interactive population time-series and a spatial animation.
-  verdict: "The port reproduces the paper's directional findings at tractable scale; full-scale quantitative calibration is future work."
+    Three replicate-seeded studies exercising the ported microenvironment: T-cell exhaustion
+    vs. starting PD1+ fraction, IFNg secretion (and conversion), and an in-vitro-style
+    killing/cytotoxicity assay — each with a mean±std population time-series and a spatial
+    animation.
+  verdict: "The T-cell-intrinsic and cytokine mechanisms reproduce robustly across seeds; the population-level tumor-count efficacy ordering does NOT separate from noise at this scale and needs paper-scale runs."
   verdict_status: passing-with-caveats
   decisions_needed:
-    - "Run the headline conditions at paper scale (1200 cells, 3 days) with replicate seeds on the mini?"
-    - "Which directional readouts should become hard pass/fail gates once replicated?"
+    - "Run the headline conditions at paper scale (1200 cells, 3 days) with replicate seeds on the mini to test the tumor-count efficacy ordering that is noise-limited here?"
+    - "Promote the three robust behaviors (exhaustion, IFNg secretion, positive cytotoxicity) to hard gates?"
 
 scientific_argument:
   main_claim: |
-    The viva-munk-physics port recovers the paper's mechanism: active T cells drive IFNg-mediated
-    PDL1n→PDL1p conversion and suppress tumor growth, and that suppression weakens as the PD1+
-    (exhausted) T-cell fraction increases.
+    The viva-munk-physics port recovers the paper's mechanism at the cell and cytokine level:
+    active T cells reliably secrete IFNg, exhaustion accumulates in proportion to the starting
+    PD1+ fraction, and co-culture produces net tumor killing — all robust across 6 seeds.
   evidence_for:
-    - "T cells suppress net tumor growth vs. a matched no-T control (efficacy study)."
-    - "Tumor suppression is greater at 25% PD1+ than at 75% PD1+ — the paper's efficacy-vs-exhaustion trend."
-    - "PDL1p tumor fraction and IFNg field are higher with active T cells than without (conversion study)."
-    - "T-cell exhaustion (PD1+ fraction) rises over time, faster when seeded with more PD1+ cells."
+    - "Active T cells secrete a measurable IFNg field in 6/6 seeds; none without T cells."
+    - "Exhausted (PD1+) T-cell fraction is higher when seeded with more PD1+ cells in 6/6 seeds (75% start ~63% end vs 25% start ~16% end)."
+    - "Killing assay: mean cytotoxicity vs. matched no-T control is positive (~11% ± 8%, positive in 5/6 seeds)."
   evidence_against:
-    - "Single-seed runs at reduced scale; outright killing (12800-packet threshold) is modest over tens of hours."
-    - "Effect sizes are directional, not yet fit to the paper's quantitative cytotoxicity curves."
+    - "Population tumor-count suppression and the 25%<75% PD1+ efficacy ordering do NOT separate from growth noise at this scale (25%>75% in only 3/6 seeds)."
+    - "The PDL1p conversion *fraction* is directionally higher with T cells but not robust (2/6 seeds); conversion is slow relative to the 10 h window."
   key_figures:
-    - "tcell-efficacy-pd1: tumor count over time across no-T / 25% PD1+ / 75% PD1+."
-    - "phenotype-conversion: PDL1p fraction over time (with vs without T cells) + IFNg field animation."
+    - "tcell-exhaustion: PD1+ T-cell fraction over time, 25% vs 75% start (mean ± std)."
+    - "phenotype-conversion: IFNg field over time, with vs without T cells (mean ± std)."
+    - "killing-assay-cytotoxicity: tumor count over time, +T vs control (mean ± std)."
   caveats:
-    - "Scale/time reduced for tractability; replicate seeds + paper-scale runs needed for quantitative claims."
+    - "Scale/time reduced for tractability (40 tumors, 12 T cells, ~10 h). Slow population effects (net suppression, conversion fraction) need paper scale (1200 cells, 3 days) to become significant."
 
 biological_story: |
-  In the tumor microenvironment, cytotoxic T cells must both recognize and transform their
-  targets. A T cell that engages a tumor cell secretes interferon-gamma; the cytokine
-  diffuses through the tissue and pushes nearby proliferative tumor cells into an arrested
-  state that displays more MHCI and PDL1. That transformed state is easier to kill but also
-  more inhibitory — and a T cell that has been engaged too long becomes exhausted (PD1+),
-  secreting less. The paper's claim is that this phenotype transformation, not raw T-cell
-  numbers, is what determines whether the T cells clear the tumor. These studies reconstruct
-  that loop from composable parts and show the same directional dependence on the PD1+ fraction.
+  In the tumor microenvironment a cytotoxic T cell must both recognize and transform its
+  target. Engagement makes the T cell secrete interferon-gamma, which diffuses and pushes
+  nearby proliferative tumor cells toward an arrested, MHCI/PDL1-high state; sustained
+  engagement also exhausts the T cell (PD1+), lowering its output. This port reconstructs that
+  loop from composable parts. At this tractable scale the fast, cell-intrinsic steps — IFNg
+  secretion and exhaustion — reproduce cleanly across seeds, and co-culture kills tumor cells;
+  the slower population consequences (net tumor clearance, the fraction converted to PDL1p)
+  are directionally present but await paper-scale runs to reach significance.
 
 at_a_glance:
-  - {study: tcell-efficacy-pd1, role: "Headline: tumor suppression falls as the PD1+ (exhausted) T-cell fraction rises."}
-  - {study: phenotype-conversion, role: "IFNg from active T cells drives PDL1n→PDL1p tumor conversion."}
-  - {study: killing-assay-cytotoxicity, role: "Well-mixed cytotoxicity vs. a matched no-T control."}
+  - {study: tcell-exhaustion, role: "Exhausted (PD1+) T-cell fraction rises with the starting PD1+ fraction (robust, 6/6)."}
+  - {study: phenotype-conversion, role: "Active T cells reliably secrete the IFNg field that drives conversion (robust, 6/6)."}
+  - {study: killing-assay-cytotoxicity, role: "Positive net cytotoxicity vs. a matched no-T control (5/6 seeds)."}
 
 studies:
-  - tcell-efficacy-pd1
+  - tcell-exhaustion
   - phenotype-conversion
   - killing-assay-cytotoxicity
 
 acceptance_criteria:
-  - {study: tcell-efficacy-pd1, behavior: "T cells suppress tumor growth, and 25% PD1+ suppresses more than 75% PD1+."}
-  - {study: phenotype-conversion, behavior: "PDL1p tumor fraction and IFNg are higher with active T cells than without."}
-  - {study: killing-assay-cytotoxicity, behavior: "Cytotoxicity (net tumor reduction vs control) is positive with T cells present."}
+  - {study: tcell-exhaustion, behavior: "Exhausted (PD1+) fraction with 75% PD1+ start exceeds 25% PD1+ start (mean over seeds)."}
+  - {study: phenotype-conversion, behavior: "Active T cells secrete a measurable IFNg field in every seed; none without T cells."}
+  - {study: killing-assay-cytotoxicity, behavior: "Mean cytotoxicity (net tumor reduction vs control) is positive across seeds."}

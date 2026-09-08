@@ -97,3 +97,35 @@ def run_condition(core, doc, n_steps, interval=60.0):
     from process_bigraph import Composite
     sim = Composite({'state': doc}, core=core)
     return snapshot_run(sim, n_steps, interval)
+
+
+def replicate_series(core, doc_fn, n_steps, seeds, observables, interval=60.0):
+    """Run one condition across replicate seeds.
+
+    doc_fn(seed) -> composite document. ``observables`` is either a single
+    callable ``frame -> value`` or a dict ``{name: callable}``. Returns
+    ``(arrays, first_frames)`` where ``arrays`` matches the ``observables`` shape:
+    a single (n_seeds, n_frames) array for a callable, or ``{name: array}`` for a
+    dict. ``first_frames`` are the first seed's frames (for a spatial animation).
+    """
+    import random
+    import numpy as np
+    single = callable(observables)
+    obs = {'_': observables} if single else dict(observables)
+    per_seed = {k: [] for k in obs}
+    first_frames = None
+    for s in seeds:
+        random.seed(s)
+        frames = run_condition(core, doc_fn(s), n_steps, interval)
+        for k, fn in obs.items():
+            per_seed[k].append([fn(f) for f in frames])
+        if first_frames is None:
+            first_frames = frames
+    arrays = {k: np.array(v, dtype=float) for k, v in per_seed.items()}
+    return (arrays['_'] if single else arrays), first_frames
+
+
+def mean_std(arr):
+    """(mean, std) over the seed axis of an (n_seeds, n_frames) array."""
+    import numpy as np
+    return np.mean(arr, axis=0), np.std(arr, axis=0)

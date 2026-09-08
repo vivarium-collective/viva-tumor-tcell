@@ -11,48 +11,50 @@ phase: Evaluate
 
 question: |
   In a well-mixed assay, do active T cells produce net tumor cell death (positive
-  cytotoxicity) relative to a matched no-T control?
+  cytotoxicity) relative to a matched no-T control, robustly across seeds?
 
 study_card:
-  goal: "Reproduce the paper's in-vitro killing readout: cytotoxicity vs. a matched control."
-  mechanism: "Well-mixed tumor cells (50% PDL1+, MHCI-high) + active T cells (25% PD1+). Cytotoxicity = (control - experiment)/control x 100 on final tumor count."
-  expected_result: "Fewer tumor cells with T cells than in the no-T control (positive cytotoxicity)."
+  goal: "Reproduce the paper's in-vitro killing readout: positive cytotoxicity vs. a matched control."
+  mechanism: "Well-mixed tumor cells (50% PDL1+, MHCI-high) + active T cells (25% PD1+, 1.5:1 ratio). Cytotoxicity = (control - experiment)/control x 100 on final tumor count, paired per seed."
+  expected_result: "Fewer tumor cells with T cells than in the no-T control (positive mean cytotoxicity)."
   main_expert_question: "How does cytotoxicity scale with the T:tumor ratio and PDL1+ fraction toward the paper's dose curves?"
 
 biological_summary: |
-  Mimicking the paper's cytotoxicity assay, tumor cells were co-cultured with active T
-  cells at a 1.5:1 T:tumor ratio; a matched well received no T cells. With T cells present
-  the final tumor count is reduced by 25% relative to control — positive cytotoxicity from
-  cumulative cytotoxic-packet delivery to MHCI-high (PDL1p) tumors.
+  Mimicking the paper's cytotoxicity assay, tumor cells were co-cultured with active T cells
+  at a 1.5:1 ratio against 50% PDL1+ tumors, with a matched no-T control, across 6 seeds. Mean
+  cytotoxicity was positive (~11% ± 8), positive in 5 of 6 seeds — net killing from cumulative
+  cytotoxic-packet delivery to MHCI-high tumors. The dense, high-ratio well-mixed layout gives
+  enough sustained contact for killing to register over the run, unlike the sparser spatial
+  microenvironment.
 
 expected_behavior:
   - name: positive_cytotoxicity
-    en: "Net tumor reduction vs. the matched no-T control is positive."
-    measure: "cytotoxicity = (control_final - experiment_final)/control_final x 100"
-    expect: "cytotoxicity > 0"
+    en: "Mean net tumor reduction vs. the matched no-T control is positive."
+    measure: "cytotoxicity = (control_final - experiment_final)/control_final x 100, mean over seeds"
+    expect: "mean cytotoxicity > 0"
 
 behavior_tests:
   - name: positive_cytotoxicity
-    measure: "final tumor count with T cells vs matched no-T control"
-    expect: "cytotoxicity > 0"
-    result: "PASS (single seed): +T=30, control=40 -> cytotoxicity 25%"
+    measure: "paired cytotoxicity % across 6 seeds"
+    expect: "mean cytotoxicity > 0"
+    result: "PASS: cytotoxicity ~11 ± 8% (positive in 5/6 seeds)"
 
 report:
   title: "Killing / cytotoxicity assay"
   verdict: passing-with-caveats
   confidence: medium
-  evidence_quality: directional
-  objective: "Show positive T-cell cytotoxicity vs. a matched control."
+  evidence_quality: replicated
+  objective: "Show positive, replicated T-cell cytotoxicity vs. a matched control."
   conclusion: |
-    With a 1.5:1 T:tumor ratio against 50% PDL1+ tumors, active T cells reduce the final
-    tumor count by 25% relative to the no-T control — positive cytotoxicity.
+    With a 1.5:1 T:tumor ratio against 50% PDL1+ tumors, active T cells reduce the final tumor
+    count relative to the no-T control by ~11% on average (positive in 5/6 seeds).
   caveat: |
-    Single seed at reduced scale; a T:tumor-ratio and PDL1+-fraction sweep with replicates
+    Single ratio / PDL1+ fraction and reduced scale; a ratio + PDL1+ sweep with more replicates
     is needed to reproduce the paper's quantitative cytotoxicity dose curves.
 
 readouts:
-  - "tumor count over time (+T vs control)"
-  - "cytotoxicity % vs matched control"
+  - "tumor count over time (+T vs control), mean ± std"
+  - "paired cytotoxicity % across seeds"
 
 canonical_runs:
   - name: killing-vs-control

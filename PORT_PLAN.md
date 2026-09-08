@@ -73,11 +73,17 @@ Same math, fewer moving parts.
   + tumor_debris field; generators `tumor_microenvironment` (CODEX layout),
   `killing_assay`, `lymph_node`. Directional trends validated.
 - **M3 — investigation + studies + viz + publish (DONE):** the
-  `tumor-tcell-showcase` investigation with three studies (efficacy-vs-PD1,
-  phenotype-conversion, killing-assay), each with `expected_behavior` +
-  `behavior_tests` (all PASS, single seed), a canonical `sims/run.py`, interactive
-  Plotly figures (population time-series + spatial animation), runs recorded to
-  `.pbg/runs.jsonl`, and a published read-only workbench bundle.
+  `tumor-tcell-showcase` investigation, three studies each with a canonical
+  `sims/run.py`, interactive Plotly figures, runs recorded to `.pbg/runs.jsonl`,
+  and a published read-only workbench bundle.
+- **M4 — rigor pass / replicate seeds (DONE):** re-ran every study across 6
+  seeds. The single-seed M3 verdicts were partly luck: tumor-count efficacy
+  (25%<75% ordering) and the PDL1p conversion *fraction* do NOT separate from
+  growth noise at tractable scale. Restructured to lead with the **robust**
+  mechanisms — T-cell exhaustion (6/6), IFNg secretion (6/6), positive
+  cytotoxicity (5/6) — reported as mean ± std with band charts; the efficacy
+  study was renamed `tcell-efficacy-pd1` → `tcell-exhaustion`; scale-limited
+  claims are documented, not gated.
 
 ## Remaining / future
 

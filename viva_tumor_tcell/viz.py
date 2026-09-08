@@ -62,6 +62,34 @@ def timeseries_figure(times_h, series, title, yaxis='count', xaxis='time (h)'):
     return _layout(fig, title, xaxis, yaxis)
 
 
+def _hex_to_rgba(hexc, a):
+    h = hexc.lstrip('#')
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f'rgba({r},{g},{b},{a})'
+
+
+def timeseries_band_figure(times_h, series_stats, title, yaxis='count', xaxis='time (h)'):
+    """Mean line + ±1 std band per condition across replicate seeds.
+
+    series_stats: {label: (mean_array, std_array)}.
+    """
+    fig = go.Figure()
+    for i, (label, (mean, std)) in enumerate(series_stats.items()):
+        color = CONDITION_COLORS[i % len(CONDITION_COLORS)]
+        mean = np.asarray(mean); std = np.asarray(std)
+        upper = list(mean + std); lower = list(mean - std)
+        # shaded ±std band
+        fig.add_trace(go.Scatter(
+            x=list(times_h) + list(times_h)[::-1], y=upper + lower[::-1],
+            fill='toself', fillcolor=_hex_to_rgba(color, 0.15),
+            line=dict(width=0), hoverinfo='skip', showlegend=False))
+        fig.add_trace(go.Scatter(
+            x=times_h, y=list(mean), name=label, mode='lines',
+            line=dict(color=color, width=2.5),
+            hovertemplate=f'<b>{label}</b>: %{{y:.3g}}<extra></extra>'))
+    return _layout(fig, title, xaxis, yaxis)
+
+
 def _time_hours(frames):
     return [f['time'] / 3600.0 for f in frames]
 
