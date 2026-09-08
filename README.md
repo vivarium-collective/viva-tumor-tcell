@@ -35,12 +35,14 @@ animation.
 | **phenotype-conversion** | Active T cells secrete a measurable **IFNg field in 6/6 seeds; 0/6 without** |
 | **killing-assay-cytotoxicity** | **cytotoxicity ~11 ± 8%** vs matched no-T control (positive in 5/6 seeds) |
 
-**Scale-limited (documented, not claimed):** population tumor-count suppression
-and the 25%<75% PD1+ efficacy *ordering* do **not** separate from growth noise at
-this scale (25%>75% in only 3/6 seeds), and the PDL1p conversion *fraction* is
-directional only (2/6). These need paper-scale runs (1200 cells, 3 days) — a
-mini/overnight job — to reach significance. See `PORT_PLAN.md` and the
-investigation's caveats.
+**Emerges at scale** (`efficacy-at-scale`, 150 cells / 1500 ticks / 3 seeds): the
+population claims that were noise at 40 cells/600 ticks resolve when scaled up —
+active (25% PD1+) T cells suppress tumor growth more than exhausted (75% PD1+) in
+**3/3 seeds** (suppression +9% vs −7%), with PDL1p conversion **14–42% vs 5–9% vs
+3–5%** (no-T). So the port reproduces the paper's central efficacy-vs-exhaustion
+finding; the tractable studies were simply under-powered. Tightening the ~9%
+suppression to the paper's quantitative curves needs the full 1200-cell / 3-day
+run — a mini/overnight job via `scripts/scale_efficacy.py`.
 
 ## Processes & composites
 

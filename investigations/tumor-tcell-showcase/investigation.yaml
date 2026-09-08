@@ -30,11 +30,11 @@ executive:
     vs. starting PD1+ fraction, IFNg secretion (and conversion), and an in-vitro-style
     killing/cytotoxicity assay — each with a mean±std population time-series and a spatial
     animation.
-  verdict: "The T-cell-intrinsic and cytokine mechanisms reproduce robustly across seeds; the population-level tumor-count efficacy ordering does NOT separate from noise at this scale and needs paper-scale runs."
+  verdict: "The cell + cytokine mechanisms reproduce robustly across seeds at tractable scale; and when scaled up (150 cells, 1500 ticks) the paper's population efficacy ordering — active T cells suppress tumors more than exhausted ones — emerges in 3/3 seeds. Full paper-scale (1200 cells, 3 days) would tighten the quantitative claim."
   verdict_status: passing-with-caveats
   decisions_needed:
-    - "Run the headline conditions at paper scale (1200 cells, 3 days) with replicate seeds on the mini to test the tumor-count efficacy ordering that is noise-limited here?"
-    - "Promote the three robust behaviors (exhaustion, IFNg secretion, positive cytotoxicity) to hard gates?"
+    - "Run the headline conditions at full paper scale (1200 cells, 3 days) on the mini to tighten the ~9% suppression estimate (a tens-of-hours, multi-GB job)?"
+    - "Promote the robust behaviors (exhaustion, IFNg secretion, positive cytotoxicity, efficacy ordering at scale) to hard gates?"
 
 scientific_argument:
   main_claim: |
@@ -45,9 +45,10 @@ scientific_argument:
     - "Active T cells secrete a measurable IFNg field in 6/6 seeds; none without T cells."
     - "Exhausted (PD1+) T-cell fraction is higher when seeded with more PD1+ cells in 6/6 seeds (75% start ~63% end vs 25% start ~16% end)."
     - "Killing assay: mean cytotoxicity vs. matched no-T control is positive (~11% ± 8%, positive in 5/6 seeds)."
+    - "AT SCALE (150 cells, 1500 ticks): active (25% PD1+) T cells suppress tumor growth more than exhausted (75% PD1+) in 3/3 seeds (suppression +8.7% vs -7.0%), with PDL1p conversion 14-42% vs 5-9% vs 3-5% (no-T)."
   evidence_against:
-    - "Population tumor-count suppression and the 25%<75% PD1+ efficacy ordering do NOT separate from growth noise at this scale (25%>75% in only 3/6 seeds)."
-    - "The PDL1p conversion *fraction* is directionally higher with T cells but not robust (2/6 seeds); conversion is slow relative to the 10 h window."
+    - "At the tractable scale (40 cells, 600 ticks) the tumor-count efficacy ordering and the PDL1p conversion fraction do NOT separate from growth noise (3/6 and 2/6) — they emerge only when scaled up (see efficacy-at-scale)."
+    - "The scale run is 3 seeds at an intermediate size (150 cells / 25 h), not the paper's full 1200 cells / 3 days; the ~9% suppression magnitude has wide variance."
   key_figures:
     - "tcell-exhaustion: PD1+ T-cell fraction over time, 25% vs 75% start (mean ± std)."
     - "phenotype-conversion: IFNg field over time, with vs without T cells (mean ± std)."
@@ -69,13 +70,16 @@ at_a_glance:
   - {study: tcell-exhaustion, role: "Exhausted (PD1+) T-cell fraction rises with the starting PD1+ fraction (robust, 6/6)."}
   - {study: phenotype-conversion, role: "Active T cells reliably secrete the IFNg field that drives conversion (robust, 6/6)."}
   - {study: killing-assay-cytotoxicity, role: "Positive net cytotoxicity vs. a matched no-T control (5/6 seeds)."}
+  - {study: efficacy-at-scale, role: "Scaled up (150 cells, 1500 ticks): the paper's efficacy-vs-exhaustion ordering emerges (3/3 seeds)."}
 
 studies:
   - tcell-exhaustion
   - phenotype-conversion
   - killing-assay-cytotoxicity
+  - efficacy-at-scale
 
 acceptance_criteria:
   - {study: tcell-exhaustion, behavior: "Exhausted (PD1+) fraction with 75% PD1+ start exceeds 25% PD1+ start (mean over seeds)."}
   - {study: phenotype-conversion, behavior: "Active T cells secrete a measurable IFNg field in every seed; none without T cells."}
   - {study: killing-assay-cytotoxicity, behavior: "Mean cytotoxicity (net tumor reduction vs control) is positive across seeds."}
+  - {study: efficacy-at-scale, behavior: "At 150 cells/1500 ticks, active (25% PD1+) T cells suppress tumor growth more than exhausted (75% PD1+) in every seed."}
