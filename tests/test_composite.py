@@ -10,10 +10,28 @@ from viva_tumor_tcell.types import cells_store
 from viva_tumor_tcell.run import snapshot_run
 
 
-def test_generator_registered():
+import pytest
+
+
+@pytest.mark.parametrize('name', [
+    'tumor_tcell_basic', 'tumor_microenvironment', 'killing_assay', 'lymph_node'])
+def test_generator_registered(name):
     from process_bigraph.composite_generator import _REGISTRY
-    matches = [eid for eid in _REGISTRY if eid.endswith('.tumor_tcell_basic')]
-    assert matches, f'tumor_tcell_basic missing; have {list(_REGISTRY)[:5]}'
+    matches = [eid for eid in _REGISTRY if eid.endswith('.' + name)]
+    assert matches, f'{name} missing; have {list(_REGISTRY)[:8]}'
+
+
+def test_all_generators_build_and_step():
+    from viva_tumor_tcell.composites.microenvironment import (
+        tumor_microenvironment_document, killing_assay_document, lymph_node_document)
+    core = build_core()
+    for doc_fn in (
+        lambda: tumor_microenvironment_document(n_tumors=10, n_tcells=3, bounds=(150., 150.), n_bins=(15, 15)),
+        lambda: killing_assay_document(n_tumors=10, bounds=(150., 150.), n_bins=(15, 15)),
+        lambda: lymph_node_document(n_tumors=8, n_tcells=2, n_dendritic=2, bounds=(150., 150.), n_bins=(15, 15)),
+    ):
+        sim = Composite({'state': doc_fn()}, core=core)
+        sim.run(60.0 * 3)   # 3 ticks, no exception
 
 
 def test_basic_composite_builds_and_runs():
@@ -28,26 +46,34 @@ def test_basic_composite_builds_and_runs():
 
 
 def test_ifng_feedback_and_killing_in_contact():
-    """A PDL1p tumor (MHCI-high) touching a non-migrating T-cell: the T-cell
-    produces IFNg into the field and transfers cytotoxic packets; the tumor's
-    received-packet count climbs. Exercises the full physics + exchange + field
-    + behavior loop end to end."""
+    """A PDL1p tumor (MHCI-high) surrounded by non-migrating T-cells: the T-cells
+    secrete IFNg into the field and transfer cytotoxic packets; the tumor's
+    received-packet count climbs. Exercises the full physics + exchange + field +
+    behavior loop end to end. Deterministic (seeded); the T-cells are placed just
+    touching the tumor (no overlap) so collisions don't eject them."""
+    import math
+    import random as _random
+    _random.seed(11); np.random.seed(11)
+
     core = build_core()
     doc = tumor_tcell_basic_document(n_tumors=0, n_tcells=0, seed=7)
-    tu = _tumor_cell('tumor_A', (60.0, 60.0), 'PDL1p')
-    tu['present_MHCI'] = 5e4         # PDL1p tumor presents high MHCI
-    tc = _t_cell('tcell_A', (60.0, 68.5), 'PD1n')
-    tc['speed'] = 0.0                # hold contact (no migration)
-    doc['cells'] = cells_store({'tumor_A': tu, 'tcell_A': tc})
+    cx, cy = 60.0, 60.0
+    tu = _tumor_cell('tumor_A', (cx, cy), 'PDL1p')  # PDL1p -> present_MHCI 5e4
+    cells = {'tumor_A': tu}
+    gap = tu['radius'] + 3.75 + 0.5   # just touching (contact, no overlap)
+    for k in range(6):
+        th = 2 * math.pi * k / 6
+        tc = _t_cell(f'tcell_{k}', (cx + gap * math.cos(th), cy + gap * math.sin(th)), 'PD1n')
+        tc['speed'] = 0.0             # hold position
+        cells[f'tcell_{k}'] = tc
+    doc['cells'] = cells_store(cells)
     sim = Composite({'state': doc}, core=core)
 
     received = 0.0
     ifng_max = 0.0
-    for _ in range(30):
+    for _ in range(25):
         sim.run(60.0)
-        cells = sim.state['cells']
-        # follow whichever tumor id currently exists (division renames)
-        for cid, c in cells.items():
+        for c in sim.state['cells'].values():
             if c.get('cell_type') == 'tumor':
                 received = max(received, float(c.get('receive_cytotoxic', 0.0)))
         ifng_max = max(ifng_max, float(np.max(np.asarray(sim.state['fields']['IFNg']))))

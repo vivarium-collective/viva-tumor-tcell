@@ -88,6 +88,8 @@ class TumorCellProcess(Process):
         sphere_radius = diameter / 2 + diffusion_radius
         avail_volume = 4 / 3 * PI * sphere_radius ** 3            # µm^3
         available_IFNg = external_IFNg * avail_volume * IFNG_COUNTS_PER_NG / 1e12
+        if not math.isfinite(available_IFNg):
+            available_IFNg = 0.0
 
         agent_update = {}
 

@@ -28,6 +28,11 @@ DECAY_PER_S = {
 }
 MOLECULAR_WEIGHT = {'IFNg': 17000.0, 'tumor_debris': 29000.0}  # g/mol
 
+# Concentration cap (ng/mL): tumor death dumps 1.4e15 debris molecules -> a huge
+# point-source concentration that can overflow to inf/NaN under diffusion. Uptake
+# is rate-capped anyway, so clamp the field to a large finite value.
+_FIELD_CAP = 1e12
+
 # _LAP: 5-point Laplacian via np.roll (reflect-free, adequate for the
 # qualitative diffusion the studies exercise).
 def _laplacian(f):
@@ -81,7 +86,8 @@ class DiffusionField(Process):
     def update(self, state, interval):
         timestep = float(interval)
         cells = state['cells']
-        fields = {m: np.array(state['fields'][m], dtype=float) for m in self.molecules}
+        original = {m: np.array(state['fields'][m], dtype=float) for m in self.molecules}
+        fields = {m: original[m].copy() for m in self.molecules}
 
         # 1. deposit exchange counts -> concentration into the cell's bin
         for cid, c in cells.items():
@@ -107,7 +113,8 @@ class DiffusionField(Process):
                     t += dt
             if mol in DECAY_PER_S:
                 f = f * np.exp(-DECAY_PER_S[mol] * timestep)
-            fields[mol] = np.clip(f, 0.0, None)
+            f = np.nan_to_num(f, nan=0.0, posinf=_FIELD_CAP, neginf=0.0)
+            fields[mol] = np.clip(f, 0.0, _FIELD_CAP)
 
         # 3/4. sample local, reset exchange, remove dead cells
         cell_update = {}
@@ -126,4 +133,8 @@ class DiffusionField(Process):
 
         if removed:
             cell_update['_remove'] = removed
-        return {'fields': fields, 'cells': cell_update}
+        # The fields store apply is additive, so return DELTAS (new - original),
+        # matching viva-munk's DiffusionAdvection. Returning absolute arrays would
+        # double the field every tick.
+        delta_fields = {m: fields[m] - original[m] for m in self.molecules}
+        return {'fields': delta_fields, 'cells': cell_update}

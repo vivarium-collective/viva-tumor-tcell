@@ -35,6 +35,8 @@ AGENT_SCHEMA = {
     'speed': 'set_float',              # migration speed magnitude (µm/s)
     # accumulators (additive delta)
     'internal_IFNg': 'float',
+    'internal_tumor_debris': 'float',   # dendritic cells: uptaken debris counts
+    'divide_count': 'float',            # dendritic cell divisions
     'cell_state_count': 'float',
     'refractory_count': 'float',
     'total_cytotoxic_packets': 'float',

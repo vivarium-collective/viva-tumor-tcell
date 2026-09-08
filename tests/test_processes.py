@@ -9,6 +9,7 @@ import pytest
 from viva_tumor_tcell.core import build_core
 from viva_tumor_tcell.processes.tumor import TumorCellProcess
 from viva_tumor_tcell.processes.t_cell import TCellProcess
+from viva_tumor_tcell.processes.dendritic_cell import DendriticCellProcess
 from viva_tumor_tcell.processes.physics import TumorTcellPhysics
 from viva_tumor_tcell.processes.field import DiffusionField
 
@@ -84,6 +85,27 @@ def test_tcell_exhausts_to_pd1p_after_refractory_cycles(core):
     # refractory_count above threshold triggers PD1n -> PD1p
     out = p.update({'agent_id': 't', 'agents': {'t': _tcell(accept_MHCI=5e4, refractory_count=4)}}, 60.0)['agents']['t']
     assert out['cell_state'] == 'PD1p'
+
+
+# ---------------------------------------------------------------- dendritic
+def test_dendritic_activates_when_debris_internalized(core):
+    p = DendriticCellProcess(config={'death_apoptosis': TINY, 'divide_prob': TINY}, core=core)
+    dc = {'id': 'd', 'cell_type': 'dendritic', 'cell_state': 'inactive', 'death': '',
+          'internal_tumor_debris': 5e5, 'radius': 5.0,
+          'local': {'IFNg': 0.0, 'tumor_debris': 0.0}}
+    out = p.update({'agent_id': 'd', 'agents': {'d': dc}}, 60.0)['agents']['d']
+    assert out['cell_state'] == 'active'
+    assert out['present_MHCI'] == pytest.approx(5e4)
+
+
+def test_dendritic_uptakes_available_debris(core):
+    p = DendriticCellProcess(config={'death_apoptosis': TINY, 'divide_prob': TINY}, core=core)
+    dc = {'id': 'd', 'cell_type': 'dendritic', 'cell_state': 'inactive', 'death': '',
+          'internal_tumor_debris': 0.0, 'radius': 5.0,
+          'local': {'IFNg': 0.0, 'tumor_debris': 10.0}}
+    out = p.update({'agent_id': 'd', 'agents': {'d': dc}}, 60.0)['agents']['d']
+    assert out['internal_tumor_debris'] > 0
+    assert out['exchange']['tumor_debris'] < 0
 
 
 # ---------------------------------------------------------------- field
