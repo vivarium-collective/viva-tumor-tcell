@@ -1,0 +1,17 @@
+schema_version: 2
+name: viva-tumor-tcell
+created: "2026-09-08"
+package_path: viva_tumor_tcell
+# Single-generation: the whole population lives in the `cells` map; per-cell
+# behavior processes add daughters in-place via _add/_remove (no external
+# lineage runner). default_n_steps sets the baseline run length.
+runtime:
+  max_generations: 1
+  default_n_steps: 200
+observables: []
+visualizations: []
+simulations: []
+datasets: []
+references_bib: references/papers.bib
+server:
+  enabled: false
