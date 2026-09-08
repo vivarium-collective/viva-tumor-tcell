@@ -1,0 +1,69 @@
+# phenotype-conversion/study.yaml — schema v4
+schema_version: 4
+name: phenotype-conversion
+title: "IFNg-driven PDL1n->PDL1p conversion"
+created: '2026-09-08'
+status: complete
+design_status: complete
+implementation_status: complete
+simulation_status: ran
+phase: Evaluate
+
+question: |
+  Do active T cells drive the IFNg-mediated conversion of proliferative (PDL1n) tumor
+  cells into the arrested, MHCI/PDL1-high (PDL1p) state?
+
+study_card:
+  goal: "Show the paper's phenotype transformation: T-cell IFNg converts PDL1n tumors to PDL1p."
+  mechanism: "T cells in contact with MHCI+ tumors secrete IFNg into a diffusing field; tumors that internalize enough IFNg switch PDL1n->PDL1p."
+  expected_result: "PDL1p tumor fraction and the IFNg field rise with active T cells; both stay flat / zero without T cells."
+  main_expert_question: "Is the IFNg diffusion/decay and the 15000-count switch threshold calibrated to the paper's tissue conditions?"
+
+biological_summary: |
+  Interferon-gamma secreted by engaged T cells diffuses through the tissue and pushes
+  nearby proliferative tumor cells into an arrested state displaying more MHCI and PDL1.
+  Here the PDL1p fraction roughly doubles when active T cells are present (21.6% vs 10.2%),
+  and a measurable IFNg field forms only in that condition — the phenotype-transformation
+  mechanism the paper argues is central to efficacy.
+
+expected_behavior:
+  - name: ifng_drives_conversion
+    en: "PDL1p tumor fraction and IFNg are higher with active T cells than without."
+    measure: "final PDL1p tumor fraction; peak IFNg field concentration"
+    expect: "pdl1p_frac(with T) > pdl1p_frac(no T) and ifng(with T) > 0 == ifng(no T)"
+
+behavior_tests:
+  - name: ifng_drives_conversion
+    measure: "final PDL1p tumor fraction and peak IFNg (with vs without T cells)"
+    expect: "conversion and IFNg elevated only with active T cells"
+    result: "PASS (single seed): PDL1p 21.6% vs 10.2%; peak IFNg 6.73 vs 0 ng/mL"
+
+report:
+  title: "IFNg-driven phenotype conversion"
+  verdict: passing-with-caveats
+  confidence: medium
+  evidence_quality: directional
+  objective: "Demonstrate T-cell-IFNg-driven PDL1n->PDL1p tumor conversion."
+  conclusion: |
+    Active T cells build a local IFNg field and roughly double the PDL1p tumor fraction
+    versus a no-T control, reproducing the paper's phenotype-transformation mechanism.
+  caveat: |
+    Single seed at reduced scale; IFNg diffusion/decay and the switch threshold use the
+    paper's constants but are not re-fit to these tractable-scale geometries.
+
+readouts:
+  - "PDL1p tumor fraction over time (with vs without T cells)"
+  - "peak IFNg field concentration"
+
+canonical_runs:
+  - name: conversion-with-vs-without-T
+    script: studies/phenotype-conversion/sims/run.py
+
+visualizations:
+  - {name: pdl1p_fraction, path: viz/pdl1p_fraction.html}
+  - {name: spatial_conversion, path: viz/spatial_conversion.html}
+
+baseline:
+  - name: baseline
+    composite: viva_tumor_tcell.composites.microenvironment.tumor_microenvironment
+    params: {n_tumors: 40, n_tcells: 12, pd1_positive_frac: 0.25}

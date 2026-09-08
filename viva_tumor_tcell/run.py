@@ -53,3 +53,47 @@ def snapshot_run(sim, n_steps, interval=60.0):
         sim.run(float(interval))
         frames.append(snapshot(sim))
     return frames
+
+
+# ------------------------------------------------------------------ observables
+def _tumors(frame):
+    return [c for c in frame['cells'].values() if c.get('cell_type') == 'tumor']
+
+
+def _tcells(frame):
+    return [c for c in frame['cells'].values() if c.get('cell_type') == 't-cell']
+
+
+def tumor_count(frame):
+    return len(_tumors(frame))
+
+
+def tcell_count(frame):
+    return len(_tcells(frame))
+
+
+def pdl1p_fraction(frame):
+    tum = _tumors(frame)
+    if not tum:
+        return 0.0
+    return sum(1 for c in tum if c.get('cell_state') == 'PDL1p') / len(tum)
+
+
+def pd1p_fraction(frame):
+    tc = _tcells(frame)
+    if not tc:
+        return 0.0
+    return sum(1 for c in tc if c.get('cell_state') == 'PD1p') / len(tc)
+
+
+def ifng_max(frame):
+    import numpy as np
+    arr = frame['fields'].get('IFNg')
+    return float(np.max(np.asarray(arr))) if arr is not None else 0.0
+
+
+def run_condition(core, doc, n_steps, interval=60.0):
+    """Build a Composite from a document and snapshot-run it."""
+    from process_bigraph import Composite
+    sim = Composite({'state': doc}, core=core)
+    return snapshot_run(sim, n_steps, interval)

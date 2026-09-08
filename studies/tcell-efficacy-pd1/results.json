@@ -1,0 +1,11 @@
+{
+  "final_tumor_count": {
+    "no T cells": 59,
+    "25% PD1+": 51,
+    "75% PD1+": 53
+  },
+  "suppression_25pct": 13.6,
+  "suppression_75pct": 10.2,
+  "behavior": "T cells suppress tumor growth; 25% PD1+ suppresses >= 75% PD1+",
+  "passed": true
+}

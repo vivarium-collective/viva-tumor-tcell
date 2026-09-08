@@ -65,12 +65,24 @@ Same math, fewer moving parts.
 
 ## Milestones
 
-- **M1 — core seam (this commit):** `tumor_tcell_agent` type; `TumorCellProcess`,
-  `TCellProcess`, `DiffusionField`, `TumorTcellPhysics`; `build_core()`; a
-  `tumor_tcell_basic` composite generator; a test that builds + runs it and shows
-  IFNg-driven tumor state switch + T-cell-mediated tumor death. Physics via viva-munk.
-- **M2 — full environment + remaining processes:** dendritic cell, lymph-node
-  transport; the full `tumor_microenvironment` generator + CODEX-style seeding.
-- **M3 — investigation + studies + viz + publish:** killing/cytotoxicity assay
-  (4 conditions), the 3 PD1+ conditions, lymph node; population/death/division +
-  spatial-snapshot animations; runs into `.pbg/runs.jsonl`; read-only workbench.
+- **M1 — core seam (DONE, `ec104be`):** `tumor_tcell_agent` schema;
+  `TumorCellProcess`, `TCellProcess`, `DiffusionField`, `TumorTcellPhysics`;
+  `build_core()`; `tumor_tcell_basic` generator; tests for the physics swap,
+  neighbor exchange, IFNg switch, killing.
+- **M2 — full environment + processes (DONE, `778db13`):** `DendriticCellProcess`
+  + tumor_debris field; generators `tumor_microenvironment` (CODEX layout),
+  `killing_assay`, `lymph_node`. Directional trends validated.
+- **M3 — investigation + studies + viz + publish (DONE):** the
+  `tumor-tcell-showcase` investigation with three studies (efficacy-vs-PD1,
+  phenotype-conversion, killing-assay), each with `expected_behavior` +
+  `behavior_tests` (all PASS, single seed), a canonical `sims/run.py`, interactive
+  Plotly figures (population time-series + spatial animation), runs recorded to
+  `.pbg/runs.jsonl`, and a published read-only workbench bundle.
+
+## Remaining / future
+
+- Replicate seeds + paper-scale runs (1200 cells, 3 days) on the mini for
+  quantitative claims; turn directional readouts into hard gates.
+- Cross-compartment lymph-node recirculation (the WIP arm; here all cells share
+  one compartment — DC activation is modeled, T-cell LN↔tumor `_move` is not).
+- Per-cell death/division timeseries + phylogeny-colored snapshots.

@@ -1,0 +1,9 @@
+{
+  "final_tumor_count": {
+    "+T": 30,
+    "control": 40
+  },
+  "cytotoxicity_pct": 25.0,
+  "behavior": "net tumor reduction vs. matched no-T control is positive",
+  "passed": true
+}
