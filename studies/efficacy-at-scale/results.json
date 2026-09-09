@@ -1,15 +1,15 @@
 {
   "scale": "150 tumors, 1500 ticks, 3 seeds",
   "final_tumor_mean_std": {
-    "no T cells": "315 \u00b1 24",
-    "25% PD1+": "286 \u00b1 15",
-    "75% PD1+": "335 \u00b1 11"
+    "no T cells": "297 \u00b1 20",
+    "25% PD1+": "302 \u00b1 14",
+    "75% PD1+": "318 \u00b1 6"
   },
   "suppression_pct": {
-    "25% PD1+": "9.2 \u00b1 4.9",
-    "75% PD1+": "-6.6 \u00b1 3.5"
+    "25% PD1+": "-1.6 \u00b1 4.8",
+    "75% PD1+": "-7.1 \u00b1 1.9"
   },
-  "ordering_25_suppresses_more_than_75": "3/3 seeds",
+  "ordering_25_suppresses_more_than_75": "2/3 seeds",
   "behavior": "active (25% PD1+) T cells suppress tumor growth more than exhausted (75% PD1+)",
-  "passed": true
+  "passed": false
 }

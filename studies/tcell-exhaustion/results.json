@@ -1,7 +1,7 @@
 {
   "metric": "exhausted (PD1+) T-cell fraction at end (%), mean \u00b1 std over 6 seeds",
   "pd1p_end": {
-    "25% start": "16 \u00b1 11",
+    "25% start": "17 \u00b1 12",
     "75% start": "63 \u00b1 22"
   },
   "behavior": "exhaustion(75% start) > exhaustion(25% start)",

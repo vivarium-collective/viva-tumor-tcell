@@ -1,6 +1,6 @@
 {
   "metric": "cytotoxicity % = (control - experiment)/control, per seed",
-  "cytotoxicity_pct": "10.6 \u00b1 7.6",
+  "cytotoxicity_pct": "10.0 \u00b1 13.3",
   "positive_seeds": "5/6",
   "behavior": "mean cytotoxicity vs. matched no-T control is positive",
   "passed": true

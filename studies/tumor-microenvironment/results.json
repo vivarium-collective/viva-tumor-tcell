@@ -3,19 +3,19 @@
   "scale": "60 tumors, 12 T cells, 600 ticks",
   "headline_condition": "25% PD1+",
   "final_tumor_count": {
-    "no T cells": 75,
-    "25% PD1+": 85,
-    "75% PD1+": 98
+    "no T cells": 77,
+    "25% PD1+": 77,
+    "75% PD1+": 82
   },
-  "headline_pdl1p_end": 7,
+  "headline_pdl1p_end": 6,
   "divisions": {
-    "tumor": 29,
-    "t-cell": 10,
+    "tumor": 23,
+    "t-cell": 5,
     "dendritic": 0
   },
   "deaths_by_type": {
-    "apoptosis": 4,
-    "PD1p_apoptosis": 2
+    "apoptosis": 6,
+    "PD1n_apoptosis": 1
   },
   "figures": [
     "population_tumor",

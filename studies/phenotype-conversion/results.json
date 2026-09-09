@@ -2,8 +2,8 @@
   "primary_metric": "peak IFNg field with active T cells > 0 in every seed; 0 without",
   "ifng_positive_seeds": "6/6 with T; 0/6 without",
   "secondary_pdl1p_pct_end": {
-    "with T": 9.0,
-    "no T": 7.7
+    "with T": 8.8,
+    "no T": 8.5
   },
   "behavior": "active T cells reliably secrete IFNg; PDL1p conversion is directional but scale-limited",
   "passed": true
