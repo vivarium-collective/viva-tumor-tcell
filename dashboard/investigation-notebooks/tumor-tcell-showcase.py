@@ -17,13 +17,13 @@ if _os.environ.get("PYTHONUTF8") != "1":
     _os.execv(_sys.executable, [_sys.executable, *_sys.argv])
 
 
-# # Tumor–T-cell Microenvironment (viva-munk port)
+# # Tumor–T-cell Microenvironment (Vivarium 1.0 → 2.0 migration)
 #
 # _Investigation `tumor-tcell-showcase` — coder reproduction notebook._
 #
-# **Question.** Does the process-bigraph port of the tumor-tcell ABM — with viva-munk providing the
-# collision physics — reproduce the paper's mechanism, and which parts of that mechanism
-# hold robustly at a tractable scale (tens of cells, tens of simulated hours)?
+# **Question.** Does migrating the tumor-tcell agent-based model from Vivarium 1.0 to process-bigraph
+# (Vivarium 2.0) reproduce the paper's mechanism, and which parts of that mechanism hold
+# robustly at a tractable scale (tens of cells, tens of simulated hours)?
 #
 # Three replicate-seeded studies exercising the ported microenvironment: T-cell exhaustion
 # vs. starting PD1+ fraction, IFNg secretion (and conversion), and an in-vitro-style

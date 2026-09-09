@@ -1,1 +1,1 @@
-{"name": "viva-tumor-tcell", "description": "", "imports": {}, "investigations": [{"name": "tumor-tcell-showcase", "title": "Tumor\u2013T-cell Microenvironment (viva-munk port)", "status": "running", "description": ""}]}
+{"name": "viva-tumor-tcell", "description": "", "imports": {}, "investigations": [{"name": "tumor-tcell-showcase", "title": "Tumor\u2013T-cell Microenvironment (Vivarium 1.0 \u2192 2.0 migration)", "status": "running", "description": ""}]}
