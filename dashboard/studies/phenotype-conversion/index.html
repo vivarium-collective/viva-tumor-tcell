@@ -56,7 +56,7 @@
             <span class="dot"></span>2&nbsp;·&nbsp;Execution<span class="step-val">ran</span>
           </span>
           
-          <span class="status-step gate-step axis-evaluation_status gate-state-passed-with-conditions set" title="Gate 3 · Evidence">
+          <span class="status-step gate-step axis-evaluation_status gate-state-not-assessed set" title="Gate 3 · Evidence">
             <span class="dot"></span>3&nbsp;·&nbsp;Evidence
           </span>
           
@@ -98,15 +98,13 @@
           
         </div>
         
-        <div class="status-detail-row gate-row gate-state-passed-with-conditions">
+        <div class="status-detail-row gate-row gate-state-not-assessed">
           <span class="status-detail-axis">3 · Evidence</span>
           <span class="status-chip gate-state-not-assessed">not set</span>
           
-          <span class="gate-computed-chip gate-state-passed-with-conditions" title="nothing run to evaluate + visualization readiness gate (V4)">◆ computed: not_evaluated</span>
+          <span class="gate-computed-chip gate-state-not-assessed" title="nothing run to evaluate">◆ computed: not_evaluated</span>
           
           
-          
-          <span class="gate-viz-gap-note" style="font-size:0.86em;color:#92400e">visualization gap: no figures</span>
           
         </div>
         
@@ -177,7 +175,7 @@ and does the downstream PDL1n-&gt;PDL1p conversion itself hold at this scale?
   
   <div class="act-cluster" data-act="study">
     <div class="act-header">
-      <span class="act-gate-dot" data-gate="study" data-gate-state="passed-with-conditions"></span>
+      <span class="act-gate-dot" data-gate="study" data-gate-state="passed"></span>
       <span class="act-label">The Study</span>
     </div>
     <div class="act-tabs">
@@ -198,7 +196,7 @@ and does the downstream PDL1n-&gt;PDL1p conversion itself hold at this scale?
   </div>
   <div class="act-cluster" data-act="evidence">
     <div class="act-header">
-      <span class="act-gate-dot" data-gate="evidence" data-gate-state="passed-with-conditions"></span>
+      <span class="act-gate-dot" data-gate="evidence" data-gate-state="passed"></span>
       <span class="act-label">Evidence</span>
     </div>
     <div class="act-tabs">
@@ -816,6 +814,59 @@ window, so conversion is reported honestly as scale-limited.
 
     
     
+    
+    <div class="figure-card embed-viz-card">
+      <iframe src="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/ifng_field.html"
+              class="figure-media-frame figure-media-frame--embed"
+              loading="lazy" title="ifng_field"
+              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              ></iframe>
+      
+      <p class="figure-desc muted">Hand-authored figure (98 KB) from reports/figures/phenotype-conversion/.</p>
+      
+      <div class="figure-caption-row">
+        <span class="figure-source-chip">embed</span>
+        <span class="figure-title">ifng_field</span>
+        
+        <a href="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/ifng_field.html" target="_blank" class="figure-open-link">Open in new tab ↗</a>
+      </div>
+    </div>
+    
+    <div class="figure-card embed-viz-card">
+      <iframe src="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/pdl1p_fraction.html"
+              class="figure-media-frame figure-media-frame--embed"
+              loading="lazy" title="pdl1p_fraction"
+              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              ></iframe>
+      
+      <p class="figure-desc muted">Hand-authored figure (121 KB) from reports/figures/phenotype-conversion/.</p>
+      
+      <div class="figure-caption-row">
+        <span class="figure-source-chip">embed</span>
+        <span class="figure-title">pdl1p_fraction</span>
+        
+        <a href="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/pdl1p_fraction.html" target="_blank" class="figure-open-link">Open in new tab ↗</a>
+      </div>
+    </div>
+    
+    <div class="figure-card embed-viz-card">
+      <iframe src="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/spatial_conversion.html"
+              class="figure-media-frame figure-media-frame--embed"
+              loading="lazy" title="spatial_conversion"
+              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              ></iframe>
+      
+      <p class="figure-desc muted">Hand-authored figure (1042 KB) from reports/figures/phenotype-conversion/.</p>
+      
+      <div class="figure-caption-row">
+        <span class="figure-source-chip">embed</span>
+        <span class="figure-title">spatial_conversion</span>
+        
+        <a href="/viva-tumor-tcell/dashboard/reports/figures/phenotype-conversion/spatial_conversion.html" target="_blank" class="figure-open-link">Open in new tab ↗</a>
+      </div>
+    </div>
+    
+    
 
     <div id="viz-charts-panel" class="charts-panel figure-mount"></div>
 
@@ -1052,7 +1103,7 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "29452f5f80f6ca891441d7ea2d90336e2e4af000", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/29452f5f80f6ca891441d7ea2d90336e2e4af000", "branch": "main", "generated_at": "2026-09-09 01:38 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5282f0c604e0d6fa7001b141b6dda0151066d168", "branch": "main", "generated_at": "2026-09-09 01:59 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "phenotype-conversion";

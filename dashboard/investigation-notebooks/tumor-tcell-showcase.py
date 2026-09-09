@@ -226,6 +226,11 @@ _save_viz('tumor-microenvironment', 'snapshots', _render_one('', {}, RUNS_DB, ST
 # spatial_animation
 _save_viz('tumor-microenvironment', 'spatial_animation', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
+# **spatial_gif**
+
+# spatial_gif
+_save_viz('tumor-microenvironment', 'spatial_gif', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
 # **tumor_count_by_condition**
 
 # tumor_count_by_condition
@@ -399,6 +404,11 @@ _save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('', {}, 
 
 # deaths
 _save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **spatial_gif**
+
+# spatial_gif
+_save_viz('killing-assay-cytotoxicity', 'spatial_gif', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_killing**
 
