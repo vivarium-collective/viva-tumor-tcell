@@ -12,6 +12,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'viva_tumor_tcell/**'   # package source: process/step descriptions,
+                                # contracts, composites, visualizations — these
+                                # drive the Registry + loom node contracts, so a
+                                # package change must republish the snapshot
       - 'workspace/**'
       - 'investigations/**'
       - 'studies/**'
