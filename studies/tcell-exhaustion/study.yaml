@@ -29,13 +29,21 @@ biological_summary: |
 expected_behavior:
   - name: exhaustion_tracks_starting_fraction
     en: "The exhausted (PD1+) T-cell fraction is higher with a 75% PD1+ start than a 25% PD1+ start."
-    measure: "final PD1+ T-cell fraction, mean over 6 seeds, per starting condition"
-    expect: "pd1p_end(75% start) > pd1p_end(25% start)"
+    measure:
+      kind: scalar
+      of: "final PD1+ T-cell fraction, mean over 6 seeds, per starting condition"
+    expect:
+      op: greater_than
+      of: "pd1p_end(75% start) > pd1p_end(25% start)"
 
 behavior_tests:
   - name: exhaustion_tracks_starting_fraction
-    measure: "final PD1+ T-cell fraction (25% start vs 75% start), 6 seeds"
-    expect: "mean pd1p_end(75%) > mean pd1p_end(25%)"
+    measure:
+      kind: scalar
+      of: "final PD1+ T-cell fraction (25% start vs 75% start), 6 seeds"
+    expect:
+      op: greater_than
+      of: "mean pd1p_end(75%) > mean pd1p_end(25%)"
     result: "PASS: 75% start ~63±22% vs 25% start ~16±11% end PD1+ (6/6 seeds)"
 
 report:

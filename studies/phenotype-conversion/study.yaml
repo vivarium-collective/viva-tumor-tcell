@@ -29,13 +29,21 @@ biological_summary: |
 expected_behavior:
   - name: active_tcells_secrete_ifng
     en: "Active T cells produce a measurable IFNg field in every seed; the no-T control does not."
-    measure: "peak IFNg field concentration per seed, with vs without T cells"
-    expect: "peak IFNg(with T) > 0 for all seeds and == 0 without T"
+    measure:
+      kind: scalar
+      of: "peak IFNg field concentration per seed, with vs without T cells"
+    expect:
+      op: positive
+      of: "peak IFNg(with T) > 0 for all seeds and == 0 without T"
 
 behavior_tests:
   - name: active_tcells_secrete_ifng
-    measure: "peak IFNg field (with vs without T cells), 6 seeds"
-    expect: "IFNg > 0 in 6/6 with T; 0/6 without"
+    measure:
+      kind: scalar
+      of: "peak IFNg field (with vs without T cells), 6 seeds"
+    expect:
+      op: positive
+      of: "IFNg > 0 in 6/6 with T; 0/6 without"
     result: "PASS: IFNg field forms in 6/6 seeds with active T cells; 0/6 without"
 
 report:

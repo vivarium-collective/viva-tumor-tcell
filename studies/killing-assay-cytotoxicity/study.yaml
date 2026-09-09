@@ -30,13 +30,21 @@ biological_summary: |
 expected_behavior:
   - name: positive_cytotoxicity
     en: "Mean net tumor reduction vs. the matched no-T control is positive."
-    measure: "cytotoxicity = (control_final - experiment_final)/control_final x 100, mean over seeds"
-    expect: "mean cytotoxicity > 0"
+    measure:
+      kind: scalar
+      of: "cytotoxicity = (control_final - experiment_final)/control_final x 100, mean over seeds"
+    expect:
+      op: positive
+      of: "mean cytotoxicity > 0"
 
 behavior_tests:
   - name: positive_cytotoxicity
-    measure: "paired cytotoxicity % across 6 seeds"
-    expect: "mean cytotoxicity > 0"
+    measure:
+      kind: scalar
+      of: "paired cytotoxicity % across 6 seeds"
+    expect:
+      op: positive
+      of: "mean cytotoxicity > 0"
     result: "PASS: cytotoxicity ~11 ± 8% (positive in 5/6 seeds)"
 
 report:

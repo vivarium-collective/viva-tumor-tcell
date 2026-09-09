@@ -32,13 +32,21 @@ biological_summary: |
 expected_behavior:
   - name: efficacy_ordering_at_scale
     en: "Active (25% PD1+) T cells suppress tumor growth more than exhausted (75% PD1+) T cells, in every seed."
-    measure: "final tumor count per condition; suppression = (no-T mean - condition)/no-T mean"
-    expect: "suppression(25% PD1+) > suppression(75% PD1+) in all seeds"
+    measure:
+      kind: scalar
+      of: "final tumor count per condition; suppression = (no-T mean - condition)/no-T mean"
+    expect:
+      op: greater_than
+      of: "suppression(25% PD1+) > suppression(75% PD1+) in all seeds"
 
 behavior_tests:
   - name: efficacy_ordering_at_scale
-    measure: "per-seed suppression, 25% vs 75% PD1+ (150 cells, 1500 ticks, 3 seeds)"
-    expect: "25% PD1+ suppresses more than 75% PD1+ in 3/3 seeds"
+    measure:
+      kind: scalar
+      of: "per-seed suppression, 25% vs 75% PD1+ (150 cells, 1500 ticks, 3 seeds)"
+    expect:
+      op: greater_than
+      of: "25% PD1+ suppresses more than 75% PD1+ in 3/3 seeds"
     result: "PASS: ordering 3/3; suppression 25% = +8.7±8.9%, 75% = -7.0±6.6%"
 
 report:
