@@ -43,7 +43,7 @@ def _tcell(**over):
 # ---------------------------------------------------------------- tumor
 def test_tumor_ifng_drives_pdl1p_switch(core):
     p = TumorCellProcess(config={'death_apoptosis': TINY, 'PDL1n_growth': TINY}, core=core)
-    out = p.update({'agent_id': 'u', 'agents': {'u': _tumor(internal_IFNg=16000.0)}}, 60.0)['agents']['u']
+    out = p.update({'cells': {'u': _tumor(internal_IFNg=16000.0)}}, 60.0)['cells']['u']
     assert out['cell_state'] == 'PDL1p'
     assert out['present_MHCI'] == pytest.approx(5e4)
     assert out['present_PDL1'] == pytest.approx(5e4)
@@ -51,7 +51,7 @@ def test_tumor_ifng_drives_pdl1p_switch(core):
 
 def test_tumor_killed_by_cytotoxic_packets(core):
     p = TumorCellProcess(config={'death_apoptosis': TINY}, core=core)
-    out = p.update({'agent_id': 'u', 'agents': {'u': _tumor(receive_cytotoxic=13000.0)}}, 60.0)['agents']['u']
+    out = p.update({'cells': {'u': _tumor(receive_cytotoxic=13000.0)}}, 60.0)['cells']['u']
     assert out['death'] == 'Tcell_death'
     assert out['exchange']['tumor_debris'] > 0
 
@@ -60,7 +60,7 @@ def test_tumor_pdl1n_internalizes_available_ifng(core):
     # local IFNg present -> PDL1n tumor internalizes some counts (degrade branch)
     p = TumorCellProcess(config={'death_apoptosis': TINY, 'PDL1n_growth': TINY}, core=core)
     tu = _tumor(local={'IFNg': 5.0, 'tumor_debris': 0.0})
-    out = p.update({'agent_id': 'u', 'agents': {'u': tu}}, 60.0)['agents']['u']
+    out = p.update({'cells': {'u': tu}}, 60.0)['cells']['u']
     assert out['internal_IFNg'] > 0
     assert out['exchange']['IFNg'] < 0  # removed from the environment
 
@@ -68,14 +68,14 @@ def test_tumor_pdl1n_internalizes_available_ifng(core):
 # ---------------------------------------------------------------- t cell
 def test_tcell_max_production_against_pdl1p_tumor(core):
     p = TCellProcess(config={'death_PD1n_14hr': TINY, 'PD1n_growth_28hr': TINY}, core=core)
-    out = p.update({'agent_id': 't', 'agents': {'t': _tcell(accept_MHCI=5e4)}}, 60.0)['agents']['t']
+    out = p.update({'cells': {'t': _tcell(accept_MHCI=5e4)}}, 60.0)['cells']['t']
     assert out['exchange']['IFNg'] == 270           # 1.62e4/3600 * 60
     assert out['transfer_cytotoxic'] == pytest.approx(40.0)  # 40/60 * 60
 
 
 def test_tcell_no_contact_migrates_not_kills(core):
     p = TCellProcess(config={'death_PD1n_14hr': TINY, 'PD1n_growth_28hr': TINY}, core=core)
-    out = p.update({'agent_id': 't', 'agents': {'t': _tcell(accept_MHCI=0.0)}}, 60.0)['agents']['t']
+    out = p.update({'cells': {'t': _tcell(accept_MHCI=0.0)}}, 60.0)['cells']['t']
     assert out.get('transfer_cytotoxic', 0.0) == 0.0
     assert out['speed'] > 0     # migrating
 
@@ -83,7 +83,7 @@ def test_tcell_no_contact_migrates_not_kills(core):
 def test_tcell_exhausts_to_pd1p_after_refractory_cycles(core):
     p = TCellProcess(config={'death_PD1n_14hr': TINY, 'PD1n_growth_28hr': TINY}, core=core)
     # refractory_count above threshold triggers PD1n -> PD1p
-    out = p.update({'agent_id': 't', 'agents': {'t': _tcell(accept_MHCI=5e4, refractory_count=4)}}, 60.0)['agents']['t']
+    out = p.update({'cells': {'t': _tcell(accept_MHCI=5e4, refractory_count=4)}}, 60.0)['cells']['t']
     assert out['cell_state'] == 'PD1p'
 
 
@@ -93,7 +93,7 @@ def test_dendritic_activates_when_debris_internalized(core):
     dc = {'id': 'd', 'cell_type': 'dendritic', 'cell_state': 'inactive', 'death': '',
           'internal_tumor_debris': 5e5, 'radius': 5.0,
           'local': {'IFNg': 0.0, 'tumor_debris': 0.0}}
-    out = p.update({'agent_id': 'd', 'agents': {'d': dc}}, 60.0)['agents']['d']
+    out = p.update({'cells': {'d': dc}}, 60.0)['cells']['d']
     assert out['cell_state'] == 'active'
     assert out['present_MHCI'] == pytest.approx(5e4)
 
@@ -103,7 +103,7 @@ def test_dendritic_uptakes_available_debris(core):
     dc = {'id': 'd', 'cell_type': 'dendritic', 'cell_state': 'inactive', 'death': '',
           'internal_tumor_debris': 0.0, 'radius': 5.0,
           'local': {'IFNg': 0.0, 'tumor_debris': 10.0}}
-    out = p.update({'agent_id': 'd', 'agents': {'d': dc}}, 60.0)['agents']['d']
+    out = p.update({'cells': {'d': dc}}, 60.0)['cells']['d']
     assert out['internal_tumor_debris'] > 0
     assert out['exchange']['tumor_debris'] < 0
 

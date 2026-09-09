@@ -13,7 +13,7 @@ Generators
   tumor_debris field (dendritic cells take up debris and activate).
 
 All use viva-munk collisions via ``TumorTcellPhysics`` and the ported
-``DiffusionField``. Cells carry embedded per-cell behavior processes; division
+``DiffusionField``. Per-cell-type behavior processes (tumor/tcell/dendritic) operate on the whole cells map; division
 adds daughters in-place. No in-document emitter (see ``viva_tumor_tcell.run``).
 """
 import math
@@ -32,14 +32,16 @@ def _zero_mol():
     return {m: 0.0 for m in MOLECULES}
 
 
-def _behavior(address, interval=TIMESTEP, config=None):
+def _behavior_process(address, interval=TIMESTEP):
+    """A top-level per-cell-type behavior process operating on the whole cells
+    map (visible as its own node in the Composite Explorer)."""
     return {
         '_type': 'process',
         'address': f'local:{address}',
-        'config': config or {},
+        'config': {},
         'interval': interval,
-        'inputs': {'agent_id': ['id'], 'agents': ['..', '..', 'cells']},
-        'outputs': {'agents': ['..', '..', 'cells']},
+        'inputs': {'cells': ['cells']},
+        'outputs': {'cells': ['cells']},
     }
 
 
@@ -52,7 +54,6 @@ def _tumor_cell(cid, location, state):
         'present_PDL1': 5e4 if state == 'PDL1p' else 0.0,
         'internal_IFNg': 0.0, 'receive_cytotoxic': 0.0,
         'exchange': _zero_mol(), 'local': _zero_mol(),
-        'behavior': _behavior('TumorCellProcess'),
     }
 
 
@@ -65,7 +66,6 @@ def _t_cell(cid, location, state):
         'present_TCR': 50000.0, 'present_PD1': 5e4 if state == 'PD1p' else 0.0,
         'total_cytotoxic_packets': 0.0, 'transfer_cytotoxic': 0.0,
         'exchange': _zero_mol(), 'local': _zero_mol(),
-        'behavior': _behavior('TCellProcess'),
     }
 
 
@@ -76,7 +76,6 @@ def _dendritic_cell(cid, location, state='inactive'):
         'location': (float(location[0]), float(location[1])), 'speed': 3.0 / 60.0,
         'present_MHCI': 0.0, 'present_PDL1': 0.0, 'internal_tumor_debris': 0.0,
         'exchange': _zero_mol(), 'local': _zero_mol(),
-        'behavior': _behavior('DendriticCellProcess'),
     }
 
 
@@ -145,6 +144,8 @@ def tumor_tcell_basic_document(
         'fields': {'IFNg': np.zeros((nx, ny))},
         'physics': _physics(bx, by),
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
+        'tumor_behavior': _behavior_process('TumorCellProcess'),
+        'tcell_behavior': _behavior_process('TCellProcess'),
     }
 
 
@@ -177,6 +178,8 @@ def tumor_microenvironment_document(
         'fields': {'IFNg': np.zeros((nx, ny))},
         'physics': _physics(bx, by),
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
+        'tumor_behavior': _behavior_process('TumorCellProcess'),
+        'tcell_behavior': _behavior_process('TCellProcess'),
     }
 
 
@@ -203,6 +206,8 @@ def killing_assay_document(
         'fields': {'IFNg': np.zeros((nx, ny))},
         'physics': _physics(bx, by),
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
+        'tumor_behavior': _behavior_process('TumorCellProcess'),
+        'tcell_behavior': _behavior_process('TCellProcess'),
     }
 
 
@@ -228,6 +233,7 @@ def lymph_node_document(
     doc['cells'] = cells_store(cells)
     doc['fields'] = {'IFNg': np.zeros((nx, ny)), 'tumor_debris': np.zeros((nx, ny))}
     doc['field'] = _field(bx, by, nx, ny, depth, ['IFNg', 'tumor_debris'])
+    doc['dendritic_behavior'] = _behavior_process('DendriticCellProcess')
     return doc
 
 

@@ -69,16 +69,34 @@ class TCellProcess(Process):
     }
 
     def inputs(self):
-        return {'agent_id': 'string', 'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def outputs(self):
-        return {'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def update(self, state, interval):
-        agent_id = state['agent_id']
-        agent = state['agents'].get(agent_id, {})
-        if not agent or agent.get('death'):
-            return {'agents': {}}
+        """Top-level process: step every T cell in the shared map."""
+        cells = state['cells']
+        out = {}
+        add, remove = {}, []
+        for agent_id, agent in cells.items():
+            if agent.get('cell_type') != 't-cell' or agent.get('death'):
+                continue
+            res = self._step_agent(agent_id, agent, interval)
+            if not res:
+                continue
+            if '_add' in res:
+                add.update(res.pop('_add'))
+            if '_remove' in res:
+                remove += res.pop('_remove')
+            out.update(res)
+        if add:
+            out['_add'] = add
+        if remove:
+            out['_remove'] = remove
+        return {'cells': out}
+
+    def _step_agent(self, agent_id, agent, interval):
         timestep = float(interval)
         p = self.config
 
@@ -95,14 +113,14 @@ class TCellProcess(Process):
         # ---- death ----
         if cell_state == 'PD1n':
             if random.uniform(0, 1) < get_probability_timestep(p['death_PD1n_14hr'], 50400, timestep):
-                return {'agents': {agent_id: {'death': 'PD1n_apoptosis'}}}
+                return {agent_id: {'death': 'PD1n_apoptosis'}}
         elif cell_state == 'PD1p':
             if PDL1 >= p['PDL1_critical_number']:
                 if random.uniform(0, 1) < get_probability_timestep(p['death_PD1p_next_to_PDL1p_14hr'], 50400, timestep):
-                    return {'agents': {agent_id: {'death': 'PD1p_PDL1_death'}}}
+                    return {agent_id: {'death': 'PD1p_PDL1_death'}}
             else:
                 if random.uniform(0, 1) < get_probability_timestep(p['death_PD1p_14hr'], 50400, timestep):
-                    return {'agents': {agent_id: {'death': 'PD1p_apoptosis'}}}
+                    return {agent_id: {'death': 'PD1p_apoptosis'}}
 
         # ---- division ----
         if cell_state == 'PD1n':
@@ -198,14 +216,11 @@ class TCellProcess(Process):
             u['total_cytotoxic_packets'] = u.get('total_cytotoxic_packets', 0.0) - cytotoxic_transfer
         u['transfer_cytotoxic'] = cytotoxic_transfer
 
-        return {'agents': {agent_id: u}}
+        return {agent_id: u}
 
     def _divide(self, agent_id, agent, count_daughter=False):
         diameter = float(agent.get('radius', self.config['diameter'] / 2.0)) * 2.0
         locs = _daughter_locations(agent.get('location', (0.0, 0.0)), diameter)
-        behavior = dict(agent.get('behavior', {}))
-        behavior.pop('instance', None)
-        behavior.setdefault('_type', 'process')
 
         cell_state = agent.get('cell_state', 'PD1n')
         stockpile = float(agent.get('total_cytotoxic_packets', 0.0) or 0.0)
@@ -225,11 +240,10 @@ class TCellProcess(Process):
             d = dict(base)
             d['id'] = did
             d['location'] = (float(dloc[0]), float(dloc[1]))
-            d['behavior'] = dict(behavior)
             # asymmetric_division: one daughter's PD1n count increments
             if cell_state == 'PD1n':
                 d['PD1n_divide_count'] = pd1n_count + 1 if i == 0 else pd1n_count
             if count_daughter == 'PD1p' and i == 0:
                 d['PD1p_divide_count'] = float(agent.get('PD1p_divide_count', 0.0) or 0.0) + 1
             add[did] = d
-        return {'agents': {'_add': add, '_remove': [agent_id]}}
+        return {'_add': add, '_remove': [agent_id]}

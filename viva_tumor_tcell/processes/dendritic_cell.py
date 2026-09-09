@@ -53,16 +53,34 @@ class DendriticCellProcess(Process):
     }
 
     def inputs(self):
-        return {'agent_id': 'string', 'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def outputs(self):
-        return {'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def update(self, state, interval):
-        agent_id = state['agent_id']
-        agent = state['agents'].get(agent_id, {})
-        if not agent or agent.get('death'):
-            return {'agents': {}}
+        """Top-level process: step every dendritic cell in the shared map."""
+        cells = state['cells']
+        out = {}
+        add, remove = {}, []
+        for agent_id, agent in cells.items():
+            if agent.get('cell_type') != 'dendritic' or agent.get('death'):
+                continue
+            res = self._step_agent(agent_id, agent, interval)
+            if not res:
+                continue
+            if '_add' in res:
+                add.update(res.pop('_add'))
+            if '_remove' in res:
+                remove += res.pop('_remove')
+            out.update(res)
+        if add:
+            out['_add'] = add
+        if remove:
+            out['_remove'] = remove
+        return {'cells': out}
+
+    def _step_agent(self, agent_id, agent, interval):
         timestep = float(interval)
         p = self.config
 
@@ -81,7 +99,7 @@ class DendriticCellProcess(Process):
 
         # death by apoptosis
         if random.uniform(0, 1) < get_probability_timestep(p['death_apoptosis'], p['death_time'], timestep):
-            return {'agents': {agent_id: {'death': 'apoptosis'}}}
+            return {agent_id: {'death': 'apoptosis'}}
 
         # division (active only)
         if cell_state == 'active':
@@ -104,14 +122,11 @@ class DendriticCellProcess(Process):
             u['present_PDL1'] = p['PDL1p_PDL1_equilibrium']
             u['present_MHCI'] = p['PDL1p_MHCI_equilibrium']
 
-        return {'agents': {agent_id: u}}
+        return {agent_id: u}
 
     def _divide(self, agent_id, agent):
         diameter = float(agent.get('radius', self.config['diameter'] / 2.0)) * 2.0
         locs = _daughter_locations(agent.get('location', (0.0, 0.0)), diameter)
-        behavior = dict(agent.get('behavior', {}))
-        behavior.pop('instance', None)
-        behavior.setdefault('_type', 'process')
         base = {
             'type': 'circle', 'cell_type': 'dendritic', 'cell_state': agent.get('cell_state', 'active'),
             'mass': float(agent.get('mass', self.config['mass'])), 'radius': diameter / 2.0,
@@ -125,6 +140,5 @@ class DendriticCellProcess(Process):
             did = f"{agent_id}{suffix}"
             d = dict(base); d['id'] = did
             d['location'] = (float(dloc[0]), float(dloc[1]))
-            d['behavior'] = dict(behavior)
             add[did] = d
-        return {'agents': {'_add': add, '_remove': [agent_id]}}
+        return {'_add': add, '_remove': [agent_id]}

@@ -63,16 +63,37 @@ class TumorCellProcess(Process):
     }
 
     def inputs(self):
-        return {'agent_id': 'string', 'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def outputs(self):
-        return {'agents': 'map[tumor_tcell_agent]'}
+        return {'cells': 'map[tumor_tcell_agent]'}
 
     def update(self, state, interval):
-        agent_id = state['agent_id']
-        agent = state['agents'].get(agent_id, {})
-        if not agent or agent.get('death'):
-            return {'agents': {}}
+        """Top-level process: step every tumor cell in the shared map, merging
+        per-cell deltas plus any division _add/_remove into one update."""
+        cells = state['cells']
+        out = {}
+        add, remove = {}, []
+        for agent_id, agent in cells.items():
+            if agent.get('cell_type') != 'tumor' or agent.get('death'):
+                continue
+            res = self._step_agent(agent_id, agent, interval)
+            if not res:
+                continue
+            if '_add' in res:
+                add.update(res.pop('_add'))
+            if '_remove' in res:
+                remove += res.pop('_remove')
+            out.update(res)
+        if add:
+            out['_add'] = add
+        if remove:
+            out['_remove'] = remove
+        return {'cells': out}
+
+    def _step_agent(self, agent_id, agent, interval):
+        """Per-cell biology (verbatim). Returns {agent_id: delta} and/or
+        {'_add': {...}, '_remove': [...]} for a division, or {} for no-op."""
         timestep = float(interval)
         p = self.config
 
@@ -96,15 +117,15 @@ class TumorCellProcess(Process):
         # death by apoptosis (0.95 by 5 days -> death_apoptosis over 432000 s)
         prob_death = get_probability_timestep(p['death_apoptosis'], 432000, timestep)
         if random.uniform(0, 1) < prob_death:
-            return {'agents': {agent_id: {
+            return {agent_id: {
                 'exchange': {'tumor_debris': int(p['tumor_debris_amount'])},
-                'death': 'apoptosis'}}}
+                'death': 'apoptosis'}}
 
         # death by cytotoxic packets
         if cytotoxic_packets >= p['cytotoxic_packet_threshold']:
-            return {'agents': {agent_id: {
+            return {agent_id: {
                 'exchange': {'tumor_debris': int(p['tumor_debris_amount'])},
-                'death': 'Tcell_death'}}}
+                'death': 'Tcell_death'}}
 
         # division (PDL1n only; PDL1p is arrested)
         if cell_state == 'PDL1n':
@@ -134,15 +155,12 @@ class TumorCellProcess(Process):
         agent_update.setdefault('exchange', {})['IFNg'] = -IFNg_degrade
         agent_update['internal_IFNg'] = IFNg_degrade
 
-        return {'agents': {agent_id: agent_update}}
+        return {agent_id: agent_update}
 
     def _divide(self, agent_id, agent):
         diameter = float(agent.get('radius', self.config['diameter'] / 2.0)) * 2.0
         loc = agent.get('location', (0.0, 0.0))
         locs = _daughter_locations(loc, diameter)
-        behavior = dict(agent.get('behavior', {}))
-        behavior.pop('instance', None)
-        behavior.setdefault('_type', 'process')
 
         base_shared = {
             'type': 'circle',
@@ -164,6 +182,5 @@ class TumorCellProcess(Process):
             d = dict(base_shared)
             d['id'] = did
             d['location'] = (float(dloc[0]), float(dloc[1]))
-            d['behavior'] = dict(behavior)
             add[did] = d
-        return {'agents': {'_add': add, '_remove': [agent_id]}}
+        return {'_add': add, '_remove': [agent_id]}
