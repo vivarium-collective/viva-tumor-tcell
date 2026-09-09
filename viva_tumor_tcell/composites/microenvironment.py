@@ -255,6 +255,7 @@ def lymph_node_document(
         'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
     },
     default_n_steps=200,
+    core_extensions=[build_core],
 )
 def tumor_tcell_basic(core=None, *, n_tumors=8, n_tcells=3,
                       tumor_pdl1n_frac=0.9, tcell_pd1n_frac=0.75, seed=1):
@@ -276,6 +277,7 @@ def tumor_tcell_basic(core=None, *, n_tumors=8, n_tcells=3,
         'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
     },
     default_n_steps=300,
+    core_extensions=[build_core],
 )
 def tumor_microenvironment(core=None, *, n_tumors=60, n_tcells=6,
                            pd1_positive_frac=0.25, tumor_pdl1n_frac=0.9, seed=1):
@@ -297,6 +299,7 @@ def tumor_microenvironment(core=None, *, n_tumors=60, n_tcells=6,
         'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
     },
     default_n_steps=300,
+    core_extensions=[build_core],
 )
 def killing_assay(core=None, *, n_tumors=40, tumor_t_ratio=1.0,
                   pdl1_positive_frac=0.0, include_tcells=True,
@@ -319,6 +322,7 @@ def killing_assay(core=None, *, n_tumors=40, tumor_t_ratio=1.0,
         'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
     },
     default_n_steps=300,
+    core_extensions=[build_core],
 )
 def lymph_node(core=None, *, n_tumors=40, n_tcells=6, n_dendritic=3,
                pd1_positive_frac=0.25, seed=1):
