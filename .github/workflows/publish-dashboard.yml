@@ -45,17 +45,21 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12.9
 
-      - name: Install vivarium-workbench (robust — skip workspace sim-deps)
-        # Only vivarium-workbench + this workspace's own package are needed to
-        # render composite specs statically. The workspace's sibling
-        # process-packages (often relative-path deps) do NOT resolve on a clean
-        # runner and are NOT needed for the static build, so install the
-        # workspace with --no-deps: a missing sim-dep degrades to an unresolved
-        # composite in the dashboard rather than aborting the whole publish.
+      - name: Install vivarium-workbench + this workspace WITH its deps
+        # The composite generators import viva_munk (physics) + numpy/scipy/plotly,
+        # so the workspace must be installed WITH its dependencies for the
+        # composites to register at publish time — otherwise the snapshot shows
+        # "composite not found in registry" and the Readouts emit-plan is empty.
+        # All of this workspace's deps are on PyPI (viva-munk, numpy, scipy,
+        # plotly, matplotlib via viva-munk), so a full install resolves on a clean
+        # runner. Fall back to --no-deps so a transient dep failure still yields a
+        # (degraded) bundle rather than aborting the publish.
         run: |
           uv venv
           uv pip install "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
-          uv pip install -e . --no-deps || echo "workspace has no installable build; composites render from spec only"
+          uv pip install -e . \
+            || uv pip install -e . --no-deps \
+            || echo "workspace has no installable build; composites render from spec only"
 
       - name: Build dashboard snapshot
         run: |
