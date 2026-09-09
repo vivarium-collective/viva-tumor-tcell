@@ -17,6 +17,13 @@ T-cell, and dendritic-cell biology, the diffusing IFNg / tumor-debris fields, an
 the cell–cell neighbor exchange are ported faithfully from the original
 vivarium-1.0 processes.
 
+The paper's central finding: therapeutic T-cell efficacy is governed by the
+**rate of IFNg-driven tumor phenotype conversion** (proliferative PDL1n/MHC-I-low →
+arrested PDL1p/MHC-I-high, G0), **not** the raw number of T-cell kills — T cells
+that start more active (25% PD1+) convert tumors earlier/stronger than exhausted
+ones (75% PD1+), even when both produce a nearly identical kill count.
+([Hickey, Agmon et al., *Cell Systems* 2024](https://doi.org/10.1016/j.cels.2024.03.004))
+
 See [PORT_PLAN.md](PORT_PLAN.md) for the architecture, decisions, and milestones.
 
 ## What it reproduces

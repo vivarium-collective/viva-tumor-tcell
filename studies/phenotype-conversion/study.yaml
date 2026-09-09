@@ -20,11 +20,17 @@ study_card:
   main_expert_question: "What run length / cell count is needed for the PDL1p conversion fraction to separate from growth noise?"
 
 biological_summary: |
-  Across 6 seeds, active T cells built a measurable IFNg field in every run while the no-T
-  control stayed at zero — a robust reproduction of the cytokine-secretion step. The IFNg
-  field is the driver of tumor phenotype conversion; the downstream PDL1p fraction is
-  directionally higher with T cells but does not separate from growth noise over the ~10 h
-  window, so conversion is reported honestly as scale-limited.
+  Tumor phenotype conversion is the paper's central mechanism (Hickey, Agmon et al., Cell
+  Systems 2024): IFNg secreted by engaged CD8+ T cells diffuses through the tissue and drives
+  proliferative PDL1n (MHC-I-low) tumor cells into an arrested, inflammatory PDL1p (MHC-I-high)
+  state that stops dividing (negative for cell-cycle markers, G0). The paper shows this
+  conversion — not the number of kills — is what controls tumor growth, and that more-active
+  (25% PD1+) T cells convert tumors earlier (~18 h) and more strongly than exhausted (75% PD1+)
+  T cells. This study isolates the cytokine driver: across 6 seeds active T cells built a
+  measurable IFNg field in every run while the no-T control stayed at zero — a robust
+  reproduction of the secretion step. The downstream PDL1p fraction is directionally higher
+  with T cells; at the tractable ~10 h scale it does not fully separate from growth noise (it
+  does at larger scale — see efficacy-at-scale), so it is reported honestly here.
 
 expected_behavior:
   - name: active_tcells_secrete_ifng

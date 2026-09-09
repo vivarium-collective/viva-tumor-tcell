@@ -84,7 +84,7 @@ def main() -> int:
     viz.write_html(fig2, viz_dir / 'pdl1p_fraction.html', STUDY_SLUG)
     if frames_withT is not None:
         fig3 = viz.spatial_animation_figure(
-            frames_withT, BOUNDS, title='Active T cells build a local IFNg field')
+            frames_withT[:100], BOUNDS, title='Active T cells build a local IFNg field')  # dense window
         viz.write_html(fig3, viz_dir / 'spatial_conversion.html', STUDY_SLUG)
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))

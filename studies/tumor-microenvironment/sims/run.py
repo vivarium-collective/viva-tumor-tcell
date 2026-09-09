@@ -86,18 +86,25 @@ def main() -> int:
     viz.write_html(viz.deaths_figure(th, a['deaths'],
         'Cumulative deaths by type (25% PD1+)'),
         viz_dir / 'deaths.html', STUDY_SLUG)
-    # 8-panel spatial montage (matches plot_snapshots) + animation (video analogue)
+    # 8-panel spatial montage (matches plot_snapshots) — from the full-run snapshots
     snaps = a['snapshots']
     panel = [snaps[i] for i in np.linspace(0, len(snaps) - 1, 8, dtype=int)]
     viz.write_html(viz.snapshots_panel_figure(panel, BOUNDS,
         'Spatial snapshots (25% PD1+): cells over IFNg field'),
         viz_dir / 'snapshots.html', STUDY_SLUG)
-    viz.write_html(viz.spatial_animation_figure(snaps, BOUNDS,
+    # Animation + GIF from a DENSE, every-tick short run so motion is smooth
+    # (T cells random-walk ~10 µm/tick; coarse full-run frames look like teleporting).
+    from viva_tumor_tcell.run import snapshot_run
+    random.seed(SEED)
+    dense_sim = Composite({'state': tumor_microenvironment_document(
+        n_tumors=N_TUMORS, n_tcells=N_TCELLS, pd1_positive_frac=0.25,
+        tumor_pdl1n_frac=0.9, bounds=BOUNDS, n_bins=N_BINS, seed=SEED)}, core=core)
+    dense = snapshot_run(dense_sim, 100)   # 101 every-tick frames (~1.7 sim-h)
+    viz.write_html(viz.spatial_animation_figure(dense, BOUNDS,
         'Microenvironment animation (25% PD1+) — cells over IFNg'),
         viz_dir / 'spatial_animation.html', STUDY_SLUG)
-    # animated GIF (the tumor-tcell 'video' analogue; paper colors + YlOrBr field)
-    viz.write_html_str(viz.spatial_gif_html(snaps, BOUNDS,
-        '25% PD1+ — cells over IFNg field'),
+    viz.write_html_str(viz.spatial_gif_html(dense, BOUNDS,
+        '25% PD1+ — cells over IFNg field', max_frames=100),
         viz_dir / 'spatial_gif.html')
 
     # --- cross-condition tumor-count comparison ---

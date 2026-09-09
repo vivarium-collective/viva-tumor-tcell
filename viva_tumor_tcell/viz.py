@@ -100,7 +100,7 @@ def _time_hours(frames):
     return [f['time'] / 3600.0 for f in frames]
 
 
-def spatial_animation_figure(frames, bounds, title, field='IFNg', max_frames=48):
+def spatial_animation_figure(frames, bounds, title, field='IFNg', max_frames=90):
     """Animated scatter of cells over the field heatmap.
 
     frames: list of snapshots (from run.snapshot_run). bounds: (bx, by) µm.

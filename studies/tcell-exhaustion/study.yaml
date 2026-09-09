@@ -20,11 +20,16 @@ study_card:
   main_expert_question: "Do the refractory-cycle and death-rate parameters give the right exhaustion timescale vs. the paper's 3-day runs?"
 
 biological_summary: |
-  T cells seeded around a tumor mass were followed for ~10 h across 6 seeds. When 75% of T
-  cells started exhausted (PD1+), the exhausted fraction ended near 63% (± 22); when only 25%
-  started exhausted it ended near 16% (± 11). The ordering held in all 6 seeds — a robust,
-  cell-intrinsic dynamic. (Net tumor-count suppression, by contrast, did not separate from
-  growth noise at this scale — see the investigation's caveats.)
+  In the paper (Hickey, Agmon et al., Cell Systems 2024, Figure 3H), repeated TCR stimulation
+  drives therapeutic T cells from the active PD1- state into the exhausted PD1+ state over the
+  course of treatment, which lowers their cytokine (IFNg) secretion and cell division — the
+  mechanistic reason the starting phenotype matters. The starting fraction (set ex-vivo: 25%
+  PD1+ with 2HC memory-skewing vs 75% PD1+ without) therefore shapes how much conversion and
+  killing the T cells can drive. This study isolates that dynamic: T cells seeded around a
+  tumor mass were followed for ~10 h across 6 seeds. When 75% of T cells started exhausted, the
+  exhausted fraction ended near 63% (± 22); when only 25% started exhausted it ended near 16%
+  (± 11) — the ordering held in all 6 seeds, a robust cell-intrinsic dynamic. (Net tumor-count
+  suppression, by contrast, needs larger scale — see efficacy-at-scale.)
 
 expected_behavior:
   - name: exhaustion_tracks_starting_fraction

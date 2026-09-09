@@ -20,12 +20,17 @@ study_card:
   main_expert_question: "How does cytotoxicity scale with the T:tumor ratio and PDL1+ fraction toward the paper's dose curves?"
 
 biological_summary: |
-  Mimicking the paper's cytotoxicity assay, tumor cells were co-cultured with active T cells
-  at a 1.5:1 ratio against 50% PDL1+ tumors, with a matched no-T control, across 6 seeds. Mean
-  cytotoxicity was positive (~11% ± 8), positive in 5 of 6 seeds — net killing from cumulative
-  cytotoxic-packet delivery to MHCI-high tumors. The dense, high-ratio well-mixed layout gives
-  enough sustained contact for killing to register over the run, unlike the sparser spatial
-  microenvironment.
+  This mirrors the paper's in-vitro cytotoxicity assay (Hickey, Agmon et al., Cell Systems
+  2024, Figure 2). There, PMEL-activated CD8+ T cells were co-cultured 1:1 with B16-F10
+  melanoma cells that were either untreated or IFNg-pretreated; the IFNg-pretreated (PDL1+,
+  MHC-I-high) tumors were killed far more effectively (~50% vs ~7% cytotoxicity at 13 h), and
+  the multiscale model reproduced this (~60% cytotoxicity by 12 h, mean of n=5 ± SEM), where
+  cytotoxicity = (control − experiment)/control × 100. Here, tumor cells (50% PDL1+) were
+  co-cultured with active T cells (25% PD1+) at a 1.5:1 ratio with a matched no-T control
+  across 6 seeds; mean cytotoxicity was positive (~11% ± 8, positive in 5/6 seeds) — net
+  killing from cumulative cytotoxic-packet delivery to MHC-I-high tumors. The dense, high-ratio
+  well-mixed layout gives enough sustained contact for killing to register, unlike the sparser
+  spatial microenvironment.
 
 expected_behavior:
   - name: positive_cytotoxicity

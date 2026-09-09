@@ -69,7 +69,7 @@ def main() -> int:
         yaxis='exhausted (PD1+) T cells (%)')
     viz.write_html(fig, viz_dir / 'pd1p_fraction.html', STUDY_SLUG)
     fig2 = viz.spatial_animation_figure(
-        first_frames['75% PD1+ start'], BOUNDS,
+        first_frames['75% PD1+ start'][:100], BOUNDS,   # dense every-tick window (smooth motion)
         title='75% PD1+ start — T cells (green=active, orange=exhausted) over IFNg')
     viz.write_html(fig2, viz_dir / 'spatial_75pct.html', STUDY_SLUG)
 

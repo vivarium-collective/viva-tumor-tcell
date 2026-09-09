@@ -73,9 +73,11 @@ def main() -> int:
               f'cytotoxicity {np.mean(cytotox):.0f} ± {np.std(cytotox):.0f}%',
         yaxis='tumor count')
     viz.write_html(fig1, viz_dir / 'tumor_count_vs_control.html', STUDY_SLUG)
-    if frames_exp is not None:
+    # dense every-tick window so motion is smooth (not teleporting between frames)
+    dense_exp = frames_exp[:100] if frames_exp else []
+    if dense_exp:
         fig2 = viz.spatial_animation_figure(
-            frames_exp, BOUNDS, title='Killing assay (+T) — well-mixed cytotoxicity')
+            dense_exp, BOUNDS, title='Killing assay (+T) — well-mixed cytotoxicity')
         viz.write_html(fig2, viz_dir / 'spatial_killing.html', STUDY_SLUG)
 
     # --- matching analysis figures (population + deaths by type), mirroring the
@@ -97,8 +99,8 @@ def main() -> int:
     viz.write_html(viz.deaths_figure(ath, a['deaths'],
         'Killing assay — cumulative tumor/T-cell deaths by type (+T)'),
         viz_dir / 'deaths.html', STUDY_SLUG)
-    viz.write_html_str(viz.spatial_gif_html(a['snapshots'], BOUNDS,
-        'Killing assay (+T) — cells over IFNg field'),
+    viz.write_html_str(viz.spatial_gif_html(dense_exp or a['snapshots'], BOUNDS,
+        'Killing assay (+T) — cells over IFNg field', max_frames=100),
         viz_dir / 'spatial_gif.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
