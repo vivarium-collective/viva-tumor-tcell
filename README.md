@@ -116,7 +116,7 @@ python studies/tumor-microenvironment/sims/run.py
 
 | Investigation | Research question |
 |---|---|
-| [Tumor–T-cell Microenvironment (viva-munk port) _(running)_](https://vivarium-collective.github.io/viva-tumor-tcell/investigations/tumor-tcell-showcase.html) | Does the process-bigraph port of the tumor-tcell ABM — with viva-munk providing the collision physics — reproduce the paper's mechanism, and which parts of that mechanism hold robustly at a tractable… |
+| [Tumor–T-cell Microenvironment (Vivarium 1.0 → 2.0 migration) _(running)_](https://vivarium-collective.github.io/viva-tumor-tcell/investigations/tumor-tcell-showcase.html) | Does migrating the tumor-tcell agent-based model from Vivarium 1.0 to process-bigraph (Vivarium 2.0) reproduce the paper's mechanism, and which parts of that mechanism hold robustly at a tractable sc… |
 <!-- END:investigations -->
 
 ## Architecture

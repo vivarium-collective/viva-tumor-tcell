@@ -1,14 +1,14 @@
 # tumor-tcell-showcase/investigation.yaml — schema v2
 schema_version: 2
 name: tumor-tcell-showcase
-title: "Tumor–T-cell Microenvironment (viva-munk port)"
+title: "Tumor–T-cell Microenvironment (Vivarium 1.0 → 2.0 migration)"
 created: '2026-09-08'
 status: running
 
 question: |
-  Does the process-bigraph port of the tumor-tcell ABM — with viva-munk providing the
-  collision physics — reproduce the paper's mechanism, and which parts of that mechanism
-  hold robustly at a tractable scale (tens of cells, tens of simulated hours)?
+  Does migrating the tumor-tcell agent-based model from Vivarium 1.0 to process-bigraph
+  (Vivarium 2.0) reproduce the paper's mechanism, and which parts of that mechanism hold
+  robustly at a tractable scale (tens of cells, tens of simulated hours)?
 
 hypothesis: |
   Active (PD1-) T cells in contact with tumor cells secrete IFNg and cytotoxic packets.
