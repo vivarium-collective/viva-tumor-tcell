@@ -129,3 +129,93 @@ def mean_std(arr):
     """(mean, std) over the seed axis of an (n_seeds, n_frames) array."""
     import numpy as np
     return np.mean(arr, axis=0), np.std(arr, axis=0)
+
+
+# ---- per-state population buckets (matches tumor-tcell population_group_plot) ----
+TUMOR_STATES = ('PDL1n', 'PDL1p')
+TCELL_STATES = ('PD1n', 'PD1p')
+DC_STATES = ('inactive', 'active')
+
+
+def population_counts(frame):
+    """Return counts by cell_type and cell_state for one frame."""
+    c = {'tumor_total': 0, 'tcell_total': 0, 'dendritic_total': 0}
+    for st in TUMOR_STATES:
+        c[f'tumor_{st}'] = 0
+    for st in TCELL_STATES:
+        c[f'tcell_{st}'] = 0
+    for st in DC_STATES:
+        c[f'dendritic_{st}'] = 0
+    for cell in frame['cells'].values():
+        ct, cs = cell.get('cell_type'), cell.get('cell_state')
+        if ct == 'tumor':
+            c['tumor_total'] += 1
+            if cs in TUMOR_STATES:
+                c[f'tumor_{cs}'] += 1
+        elif ct == 't-cell':
+            c['tcell_total'] += 1
+            if cs in TCELL_STATES:
+                c[f'tcell_{cs}'] += 1
+        elif ct == 'dendritic':
+            c['dendritic_total'] += 1
+            if cs in DC_STATES:
+                c[f'dendritic_{cs}'] += 1
+    return c
+
+
+def analysis_run(sim, n_steps, interval=60.0, keep_snapshots=8):
+    """Run tick-by-tick, tracking the observables the tumor-tcell analyses need:
+
+      * per-state population counts over time (population_group_plot),
+      * cumulative deaths by death-reason type over time (death_group_plot) —
+        detected before the DiffusionField removes the dead cell,
+      * cumulative divisions per cell type over time (division_plot) — detected
+        from the mother -> mother+'A'/'B' phylogeny id scheme,
+      * peak IFNg over time,
+      * a handful of evenly-spaced full snapshots for spatial panels / animation.
+
+    Returns a dict of time series + snapshots.
+    """
+    import numpy as np
+    times, pops, ifng = [], [], []
+    death_cum = {}                 # reason -> running count
+    death_series = []              # list of dict copies over time
+    div_cum = {'tumor': 0, 't-cell': 0, 'dendritic': 0}
+    div_series = []
+    counted_deaths = set()         # cell ids already counted as dead
+    prev_ids = set(sim.state['cells'].keys())
+    snap_idx = set(np.linspace(0, n_steps, keep_snapshots, dtype=int).tolist())
+    snapshots = []
+
+    def _record(step):
+        cells = sim.state['cells']
+        t = float(sim.state.get('global_time', step * interval))
+        times.append(t / 3600.0)
+        pops.append(population_counts(snapshot(sim)))
+        ifng.append(ifng_max(snapshot(sim)))
+        # deaths: cells currently flagged dead, not yet counted
+        for cid, c in cells.items():
+            if c.get('death') and cid not in counted_deaths:
+                counted_deaths.add(cid)
+                reason = str(c.get('death'))
+                death_cum[reason] = death_cum.get(reason, 0) + 1
+        death_series.append(dict(death_cum))
+        # divisions: new A/B pairs since last tick
+        cur_ids = set(cells.keys())
+        new_ids = cur_ids - prev_ids
+        for nid in new_ids:
+            if nid.endswith('A') and (nid[:-1] + 'B') in new_ids:
+                ct = cells[nid].get('cell_type', 'tumor')
+                div_cum[ct] = div_cum.get(ct, 0) + 1
+        div_series.append(dict(div_cum))
+        prev_ids.clear(); prev_ids.update(cur_ids)
+        if step in snap_idx:
+            snapshots.append(snapshot(sim))
+
+    _record(0)
+    for step in range(1, n_steps + 1):
+        sim.run(float(interval))
+        _record(step)
+
+    return {'times_h': times, 'populations': pops, 'ifng': ifng,
+            'deaths': death_series, 'divisions': div_series, 'snapshots': snapshots}

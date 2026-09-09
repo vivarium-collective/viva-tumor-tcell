@@ -1,0 +1,91 @@
+# tumor-microenvironment/study.yaml — schema v4
+schema_version: 4
+name: tumor-microenvironment
+title: "Tumor microenvironment (headline experiment) + full figure suite"
+created: '2026-09-09'
+status: complete
+design_status: complete
+implementation_status: complete
+simulation_status: ran
+phase: Evaluate
+
+question: |
+  Does the ported model reproduce tumor-tcell's headline experiment
+  (tumor_microenvironment_experiment, id '5') — a central tumor mass ringed by
+  T cells under the three CODEX conditions — and its full analysis figure suite?
+
+study_card:
+  goal: "Reproduce the paper's headline simulation and the exact figures its analysis produces."
+  mechanism: "Ring-seeded tumor mass + T cells (no-T / 25% PD1+ / 75% PD1+); IFNg-driven conversion + contact killing + exhaustion. Figures mirror individual_analysis: population-by-state, divisions, deaths-by-type, 8-panel snapshots, video."
+  expected_result: "The full figure suite renders with the paper's cell-state colors (TAG_COLORS) over the YlOrBr IFNg field; the 25% PD1+ headline shows conversion, divisions, and (contact) killing."
+  main_expert_question: "At the paper's full scale (1200 cells, 3 days) do the population/death curves match the published figures quantitatively?"
+
+biological_summary: |
+  This is the ported analogue of tumor-tcell's headline run: a central tumor mass with a
+  ring of T cells (25% PD1+ in the headline condition), sharing a diffusing IFNg field, with
+  cell–cell collisions from viva-munk. The study emits the same figures the original's
+  individual_analysis produces — tumor and T-cell population-by-state timeseries, cumulative
+  divisions, cumulative deaths by type, an 8-panel spatial snapshot montage, and a spatial
+  animation (the video analogue) — using the paper's cell-state colors (PDL1n=indianred,
+  PDL1p=skyblue, PD1n=darkorange, PD1p=limegreen) over the YlOrBr IFNg field. A cross-condition
+  panel compares tumor count across no-T / 25% / 75% PD1+.
+
+expected_behavior:
+  - name: reproduces_headline_suite
+    en: "The headline experiment runs and produces the original's full analysis figure suite with matching colors."
+    measure:
+      kind: qualitative
+      of: "population-by-state, divisions, deaths-by-type, snapshot montage, and animation all render"
+    expect:
+      op: renders
+      of: "all figures produced; 25% PD1+ shows IFNg-driven conversion and divisions/killing"
+
+behavior_tests:
+  - name: reproduces_headline_suite
+    measure:
+      kind: qualitative
+      of: "the 6-figure suite + cross-condition comparison"
+    expect:
+      op: renders
+      of: "all figures render with TAG_COLORS / YlOrBr"
+    result: "PASS: population(tumor/tcell), divisions, deaths, snapshots, animation, and cross-condition comparison all rendered"
+
+report:
+  title: "Tumor microenvironment — headline experiment"
+  verdict: passing-with-caveats
+  confidence: medium
+  evidence_quality: qualitative
+  objective: "Reproduce the paper's headline simulation and figure suite."
+  conclusion: |
+    The ported headline experiment runs under all three CODEX conditions and reproduces
+    tumor-tcell's full analysis figure suite (population-by-state, divisions, deaths-by-type,
+    spatial snapshot montage, animation) with the paper's cell-state colors over the YlOrBr
+    IFNg field.
+  caveat: |
+    Tractable scale (60 tumors, 600 ticks, single seed) — a faithful reproduction of the
+    figure suite and mechanism, not the paper's full 1200-cell / 3-day quantitative curves.
+    Death events are sparse at this scale/time.
+
+readouts:
+  - "tumor & T-cell population-by-state over time"
+  - "cumulative divisions; cumulative deaths by type"
+  - "8-panel spatial snapshots + animation over the IFNg field"
+  - "cross-condition tumor count (no-T / 25% / 75% PD1+)"
+
+canonical_runs:
+  - name: headline-3-conditions
+    script: studies/tumor-microenvironment/sims/run.py
+
+visualizations:
+  - {name: population_tumor, path: viz/population_tumor.html}
+  - {name: population_tcell, path: viz/population_tcell.html}
+  - {name: divisions, path: viz/divisions.html}
+  - {name: deaths, path: viz/deaths.html}
+  - {name: snapshots, path: viz/snapshots.html}
+  - {name: spatial_animation, path: viz/spatial_animation.html}
+  - {name: tumor_count_by_condition, path: viz/tumor_count_by_condition.html}
+
+baseline:
+  - name: baseline
+    composite: viva_tumor_tcell.composites.microenvironment.tumor_microenvironment
+    params: {n_tumors: 60, n_tcells: 12, pd1_positive_frac: 0.25}

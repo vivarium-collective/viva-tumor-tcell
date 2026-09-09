@@ -7,9 +7,9 @@ Two headline forms:
     type+state, sized by radius) over the IFNg field heatmap, with a play
     button + time slider — the interactive analogue of the paper's videos.
 
-Colors: Okabe–Ito (colorblind-safe). Cell-state categories are ordered so the
-weakest CVD-adjacent pair (pink↔green) is never neighboring in the legend, and
-every marker carries a thin outline (contrast relief for the lighter hues).
+Cell-state colors reproduce tumor-tcell's TAG_COLORS and the IFNg field uses its
+'YlOrBr' colormap, so the spatial figures match the paper's published
+snapshots/video. Condition/line charts use an Okabe–Ito set.
 """
 from __future__ import annotations
 
@@ -21,15 +21,21 @@ INK = '#1b1b1a'
 MUTED = '#6b6b68'
 GRID = '#e7e7e3'
 
-# cell_type + cell_state -> (label, color)
+# cell_type + cell_state -> (label, color).
+# Colors are tumor-tcell's TAG_COLORS (matplotlib named colors), so the spatial
+# figures match the paper's published snapshots/video exactly:
+#   PDL1n=indianred, PDL1p=skyblue, PD1n=darkorange, PD1p=limegreen,
+#   dendritic inactive=black, active=gray.
 STATE_STYLE = {
-    ('tumor', 'PDL1n'):     ('Tumor PDL1n (proliferative)', '#0072B2'),
-    ('tumor', 'PDL1p'):     ('Tumor PDL1p (arrested)',      '#E69F00'),
-    ('t-cell', 'PD1n'):     ('T cell PD1- (active)',        '#009E73'),
-    ('t-cell', 'PD1p'):     ('T cell PD1+ (exhausted)',     '#D55E00'),
-    ('dendritic', 'inactive'): ('Dendritic (inactive)',     '#CC79A7'),
-    ('dendritic', 'active'):   ('Dendritic (active)',        '#56B4E9'),
+    ('tumor', 'PDL1n'):     ('Tumor PDL1n (proliferative)', '#CD5C5C'),   # indianred
+    ('tumor', 'PDL1p'):     ('Tumor PDL1p (arrested)',      '#87CEEB'),   # skyblue
+    ('t-cell', 'PD1n'):     ('T cell PD1- (active)',        '#FF8C00'),   # darkorange
+    ('t-cell', 'PD1p'):     ('T cell PD1+ (exhausted)',     '#32CD32'),   # limegreen
+    ('dendritic', 'inactive'): ('Dendritic (inactive)',     '#000000'),   # black
+    ('dendritic', 'active'):   ('Dendritic (active)',        '#808080'),   # gray
 }
+# IFNg field colormap — matches tumor-tcell's snapshots ('YlOrBr').
+FIELD_COLORSCALE = 'YlOrBr'
 CONDITION_COLORS = ['#0072B2', '#E69F00', '#009E73', '#D55E00', '#CC79A7']
 
 
@@ -121,7 +127,7 @@ def spatial_animation_figure(frames, bounds, title, field='IFNg', max_frames=48)
         nx, ny = arr.shape
         heat = go.Heatmap(
             z=z, x=np.linspace(0, bx, nx), y=np.linspace(0, by, ny),
-            colorscale='Purples', zmin=0, zmax=fmax, opacity=0.55,
+            colorscale=FIELD_COLORSCALE, zmin=0, zmax=fmax, opacity=0.55,
             showscale=True, colorbar=dict(title=f'{field}<br>(ng/mL)', len=0.6, thickness=12),
             hoverinfo='skip')
         traces = [heat]
@@ -174,6 +180,138 @@ def spatial_animation_figure(frames, bounds, title, field='IFNg', max_frames=48)
                       steps=steps)],
     )
     return fig
+
+
+# ---- figures that mirror tumor-tcell's analysis plots ----
+
+# per-state line colors (reuse the Okabe-Ito state palette)
+_POP_COLORS = {
+    'tumor_total': '#1b1b1a', 'tumor_PDL1n': '#0072B2', 'tumor_PDL1p': '#E69F00',
+    'tcell_total': '#4b4b48', 'tcell_PD1n': '#009E73', 'tcell_PD1p': '#D55E00',
+    'dendritic_total': '#6b6b68', 'dendritic_inactive': '#CC79A7', 'dendritic_active': '#56B4E9',
+}
+_POP_LABELS = {
+    'tumor_total': 'Tumor total', 'tumor_PDL1n': 'Tumor PDL1n', 'tumor_PDL1p': 'Tumor PDL1p',
+    'tcell_total': 'T cell total', 'tcell_PD1n': 'T cell PD1-', 'tcell_PD1p': 'T cell PD1+',
+    'dendritic_total': 'Dendritic total', 'dendritic_inactive': 'Dendritic inactive',
+    'dendritic_active': 'Dendritic active',
+}
+
+
+def population_group_figure(times_h, populations, keys, title, yaxis='cell count'):
+    """Total + per-state counts over time (mirrors population_group_plot).
+
+    populations: list of per-tick count dicts (from run.population_counts / analysis_run).
+    keys: which count keys to draw, e.g. ['tumor_total','tumor_PDL1n','tumor_PDL1p'].
+    """
+    fig = go.Figure()
+    for k in keys:
+        ys = [p.get(k, 0) for p in populations]
+        color = _POP_COLORS.get(k, INK)
+        dash = 'solid' if k.endswith('total') else 'solid'
+        width = 3 if k.endswith('total') else 2
+        fig.add_trace(go.Scatter(
+            x=times_h, y=ys, name=_POP_LABELS.get(k, k), mode='lines',
+            line=dict(color=color, width=width, dash=dash),
+            hovertemplate=f'<b>{_POP_LABELS.get(k, k)}</b>: %{{y}}<extra></extra>'))
+    return _layout(fig, title, 'time (h)', yaxis)
+
+
+def divisions_figure(times_h, div_series, title='Cumulative divisions', cell_types=('tumor', 't-cell')):
+    """Cumulative divisions over time per cell type (mirrors division_plot)."""
+    fig = go.Figure()
+    colors = {'tumor': '#0072B2', 't-cell': '#009E73', 'dendritic': '#CC79A7'}
+    for ct in cell_types:
+        ys = [d.get(ct, 0) for d in div_series]
+        fig.add_trace(go.Scatter(
+            x=times_h, y=ys, name=f'{ct} divisions', mode='lines',
+            line=dict(color=colors.get(ct, INK), width=2.5),
+            hovertemplate=f'<b>{ct}</b>: %{{y}} divisions<extra></extra>'))
+    return _layout(fig, title, 'time (h)', 'cumulative divisions')
+
+
+# death-reason -> (label, color); mirrors the tumor-tcell death subtypes
+_DEATH_STYLE = {
+    'apoptosis':        ('Tumor apoptosis', '#E69F00'),
+    'Tcell_death':      ('Tumor killed by T cell', '#D55E00'),
+    'PD1n_apoptosis':   ('T cell PD1- apoptosis', '#009E73'),
+    'PD1p_apoptosis':   ('T cell PD1+ apoptosis', '#56B4E9'),
+    'PD1p_PDL1_death':  ('T cell PD1+ death at PDL1+', '#CC79A7'),
+}
+
+
+def deaths_figure(times_h, death_series, title='Cumulative deaths by type'):
+    """Cumulative deaths by death-reason type over time (mirrors death_group_plot)."""
+    reasons = sorted({r for d in death_series for r in d})
+    fig = go.Figure()
+    for i, r in enumerate(reasons):
+        label, color = _DEATH_STYLE.get(r, (r, CONDITION_COLORS[i % len(CONDITION_COLORS)]))
+        ys = [d.get(r, 0) for d in death_series]
+        fig.add_trace(go.Scatter(
+            x=times_h, y=ys, name=label, mode='lines',
+            line=dict(color=color, width=2.5),
+            hovertemplate=f'<b>{label}</b>: %{{y}}<extra></extra>'))
+    if not reasons:
+        fig.add_annotation(text='no deaths recorded in this run', showarrow=False,
+                           xref='paper', yref='paper', x=0.5, y=0.5, font=dict(color=MUTED))
+    return _layout(fig, title, 'time (h)', 'cumulative deaths')
+
+
+def snapshots_panel_figure(snapshots, bounds, title, field='IFNg'):
+    """Multi-timepoint spatial panels: cells (colored by type+state, sized by
+    radius) over the field heatmap — a static analogue of tumor-tcell's
+    plot_snapshots (one column per timepoint)."""
+    from plotly.subplots import make_subplots
+    bx, by = float(bounds[0]), float(bounds[1])
+    n = len(snapshots)
+    titles = [f"t = {s['time']/3600.0:.1f} h" for s in snapshots]
+    fig = make_subplots(rows=1, cols=n, subplot_titles=titles,
+                        horizontal_spacing=0.02, shared_yaxes=True)
+    fmax = max([float(np.percentile(np.asarray(s['fields'].get(field, [[0.0]])), 99))
+                for s in snapshots] + [1e-9])
+    seen_legend = set()
+    for col, s in enumerate(snapshots, start=1):
+        arr = np.asarray(s['fields'].get(field, np.zeros((1, 1))), dtype=float)
+        fig.add_trace(go.Heatmap(z=arr.T, x=np.linspace(0, bx, arr.shape[0]),
+                                 y=np.linspace(0, by, arr.shape[1]),
+                                 colorscale=FIELD_COLORSCALE, zmin=0, zmax=fmax, opacity=0.5,
+                                 showscale=False, hoverinfo='skip'), row=1, col=col)
+        for (ct, cs), (label, color) in STATE_STYLE.items():
+            xs, ys, sz = [], [], []
+            for c in s['cells'].values():
+                if c.get('cell_type') == ct and (c.get('cell_state') or '') == cs:
+                    loc = c.get('location', [0, 0]); xs.append(loc[0]); ys.append(loc[1])
+                    sz.append(max(5, float(c.get('radius', 5)) * 1.1))
+            show = label not in seen_legend
+            if xs:
+                seen_legend.add(label)
+            fig.add_trace(go.Scatter(
+                x=xs, y=ys, mode='markers', name=label, legendgroup=label, showlegend=show,
+                marker=dict(color=color, size=sz, line=dict(color='#2b2b28', width=0.7)),
+                hovertemplate=f'{label}<extra></extra>'), row=1, col=col)
+        fig.update_xaxes(range=[0, bx], showgrid=False, row=1, col=col,
+                         scaleanchor=f'y{col if col > 1 else ""}', constrain='domain')
+        fig.update_yaxes(range=[0, by], showgrid=False, row=1, col=col)
+    fig.update_layout(title=dict(text=title, font=dict(size=17, color=INK)),
+                      paper_bgcolor=SURFACE, plot_bgcolor=SURFACE, height=380,
+                      font=dict(size=12, color=INK),
+                      legend=dict(orientation='h', y=-0.12, font=dict(size=11)))
+    return fig
+
+
+def cytotoxicity_figure(times_h, cyto_mean, cyto_sem, title='Cytotoxicity vs. control (mean ± SEM)'):
+    """% cytotoxicity over time with a mean ± SEM band (mirrors cytotoxicity_rep_plot)."""
+    fig = go.Figure()
+    color = '#D55E00'
+    upper = list(np.asarray(cyto_mean) + np.asarray(cyto_sem))
+    lower = list(np.asarray(cyto_mean) - np.asarray(cyto_sem))
+    fig.add_trace(go.Scatter(x=list(times_h) + list(times_h)[::-1], y=upper + lower[::-1],
+                             fill='toself', fillcolor=_hex_to_rgba(color, 0.15),
+                             line=dict(width=0), hoverinfo='skip', showlegend=False))
+    fig.add_trace(go.Scatter(x=times_h, y=list(cyto_mean), name='cytotoxicity', mode='lines',
+                             line=dict(color=color, width=2.5),
+                             hovertemplate='%{y:.1f}%<extra></extra>'))
+    return _layout(fig, title, 'time (h)', 'cytotoxicity (%)')
 
 
 def write_html(fig, path, title):

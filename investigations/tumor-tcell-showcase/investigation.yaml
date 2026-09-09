@@ -67,18 +67,21 @@ biological_story: |
   are directionally present but await paper-scale runs to reach significance.
 
 at_a_glance:
+  - {study: tumor-microenvironment, role: "The paper's headline experiment (ring-seeded, 3 CODEX conditions) + its full figure suite (population/division/death/snapshots/video), paper colors."}
   - {study: tcell-exhaustion, role: "Exhausted (PD1+) T-cell fraction rises with the starting PD1+ fraction (robust, 6/6)."}
   - {study: phenotype-conversion, role: "Active T cells reliably secrete the IFNg field that drives conversion (robust, 6/6)."}
   - {study: killing-assay-cytotoxicity, role: "Positive net cytotoxicity vs. a matched no-T control (5/6 seeds)."}
   - {study: efficacy-at-scale, role: "Scaled up (150 cells, 1500 ticks): the paper's efficacy-vs-exhaustion ordering emerges (3/3 seeds)."}
 
 studies:
+  - tumor-microenvironment
   - tcell-exhaustion
   - phenotype-conversion
   - killing-assay-cytotoxicity
   - efficacy-at-scale
 
 acceptance_criteria:
+  - {study: tumor-microenvironment, behavior: "The headline experiment reproduces tumor-tcell's full analysis figure suite (population/division/death/snapshots/video) with the paper's colors."}
   - {study: tcell-exhaustion, behavior: "Exhausted (PD1+) fraction with 75% PD1+ start exceeds 25% PD1+ start (mean over seeds)."}
   - {study: phenotype-conversion, behavior: "Active T cells secrete a measurable IFNg field in every seed; none without T cells."}
   - {study: killing-assay-cytotoxicity, behavior: "Mean cytotoxicity (net tumor reduction vs control) is positive across seeds."}
