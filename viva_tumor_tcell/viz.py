@@ -314,20 +314,24 @@ def cytotoxicity_figure(times_h, cyto_mean, cyto_sem, title='Cytotoxicity vs. co
     return _layout(fig, title, 'time (h)', 'cytotoxicity (%)')
 
 
-def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=6, max_frames=60):
+def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=10, max_frames=120):
     """Render an animated GIF of the spatial dynamics (cells over the IFNg field)
     with the paper's TAG_COLORS / YlOrBr, and return it wrapped in an HTML page
     (autoplaying, looping <img>) — the tumor-tcell 'video' analogue.
 
-    Uses matplotlib (Agg) like the original's snapshots/video.
+    Cells are drawn as true ``patches.Circle`` in µm data-coordinates on an
+    equal-aspect axis, so a 15 µm tumor is visibly larger than a 7.5 µm T cell
+    (unlike a pixel-sized scatter marker), and every retained frame is rendered
+    so motion is smooth rather than teleporting. Uses matplotlib (Agg) like the
+    original's snapshots/video.
     """
     import base64
-    import io
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    from matplotlib import animation
+    from matplotlib import animation, cm
+    from matplotlib.colors import Normalize
 
     bx, by = float(bounds[0]), float(bounds[1])
     step = max(1, len(snapshots) // max_frames)
@@ -335,14 +339,20 @@ def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=6, max_frames=6
     fmax = max([float(np.percentile(np.asarray(f['fields'].get(field, [[0.0]])), 99))
                 for f in frames] + [1e-9])
 
-    fig, ax = plt.subplots(figsize=(5.2, 5.2))
+    fig, ax = plt.subplots(figsize=(5.6, 5.2))
     fig.patch.set_facecolor('white')
+    # colorbar drawn once on its own axes (survives ax.clear() each frame)
+    norm = Normalize(vmin=0.0, vmax=fmax)
+    sm = cm.ScalarMappable(norm=norm, cmap='YlOrBr')
+    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.03)
+    cbar.set_label(f'{field} (ng/mL)', fontsize=9)
+    cbar.ax.tick_params(labelsize=8)
 
     def draw(frame):
         ax.clear()
         arr = np.asarray(frame['fields'].get(field, np.zeros((1, 1))), dtype=float)
         ax.imshow(arr.T, origin='lower', extent=[0, bx, 0, by], cmap='YlOrBr',
-                  vmin=0, vmax=fmax, alpha=0.85, aspect='equal', zorder=0)
+                  norm=norm, alpha=0.85, aspect='equal', zorder=0)
         for c in frame['cells'].values():
             style = STATE_STYLE.get((c.get('cell_type'), c.get('cell_state') or ''))
             if not style:
@@ -350,10 +360,12 @@ def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=6, max_frames=6
             loc = c.get('location', (0, 0))
             r = float(c.get('radius', 5.0))
             ax.add_patch(patches.Circle((loc[0], loc[1]), r, facecolor=style[1],
-                                        edgecolor='white', linewidth=0.4, zorder=2))
+                                        edgecolor='white', linewidth=0.5, zorder=2))
         ax.set_xlim(0, bx); ax.set_ylim(0, by)
+        ax.set_aspect('equal')
         ax.set_title(f"{title}\nt = {frame['time']/3600.0:.1f} h", fontsize=10)
-        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_xlabel('x (µm)', fontsize=9); ax.set_ylabel('y (µm)', fontsize=9)
+        ax.tick_params(labelsize=8)
         return []
 
     anim = animation.FuncAnimation(fig, draw, frames=frames, blit=False)

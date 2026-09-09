@@ -83,9 +83,11 @@ def main() -> int:
         yaxis='PDL1p tumors (%)')
     viz.write_html(fig2, viz_dir / 'pdl1p_fraction.html', STUDY_SLUG)
     if frames_withT is not None:
-        fig3 = viz.spatial_animation_figure(
-            frames_withT[:100], BOUNDS, title='Active T cells build a local IFNg field')  # dense window
-        viz.write_html(fig3, viz_dir / 'spatial_conversion.html', STUDY_SLUG)
+        # matplotlib-GIF method: true circles in µm data-coords (correct cell
+        # sizes) + every frame (smooth motion). dense every-tick window.
+        viz.write_html_str(viz.spatial_gif_html(
+            frames_withT[:100], BOUNDS, 'Active T cells build a local IFNg field',
+            max_frames=100), viz_dir / 'spatial_conversion.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
     from viva_tumor_tcell.studies_lib import publish_figures

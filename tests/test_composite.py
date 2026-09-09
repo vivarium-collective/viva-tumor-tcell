@@ -69,7 +69,12 @@ def test_composites_declare_renderable_visualizations():
         assert len(rendered) == 3, f'{name}: expected 3 viz, got {list(rendered)}'
         for path, payload in rendered.items():
             html = payload.get('html', '')
-            assert 'plotly' in html.lower(), f'{name} {path}: not a Plotly figure'
+            key = path[-1] if isinstance(path, tuple) else str(path)
+            if 'spatial' in key:
+                # spatial uses the matplotlib-GIF method (true cell sizes)
+                assert 'image/gif' in html, f'{name} {key}: not a GIF'
+            else:
+                assert 'plotly' in html.lower(), f'{name} {key}: not a Plotly figure'
 
 
 def test_ifng_feedback_and_killing_in_contact():

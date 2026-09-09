@@ -150,17 +150,19 @@ class PhenotypeFractions(Visualization):
 
 
 class SpatialLayout(Visualization):
-    """Animated scatter of cells over the IFNg field (the paper's video analogue).
+    """Animated GIF of cells over the IFNg field (the paper's video analogue).
 
-    Accumulates a lightweight per-tick frame; renders an animated Plotly figure
-    with a play button + time slider on demand."""
+    New-style: ``accumulate`` buffers a compact per-tick frame; ``render`` builds
+    the animated GIF once at end-of-run via the matplotlib method — true circles
+    in µm data-coordinates (correct cell sizes) with every frame drawn, so it
+    matches the study spatial figures rather than a pixel-sized scatter."""
 
     config_schema = {
         'title': {'_type': 'string', '_default': 'Spatial layout'},
         'bounds_x': {'_type': 'float', '_default': 400.0},
         'bounds_y': {'_type': 'float', '_default': 400.0},
         'field': {'_type': 'string', '_default': 'IFNg'},
-        'max_frames': {'_type': 'integer', '_default': 60},
+        'max_frames': {'_type': 'integer', '_default': 120},
     }
 
     def __init__(self, *args, **kwargs):
@@ -174,7 +176,7 @@ class SpatialLayout(Visualization):
                            '_data': 'float'}},
                 'time': 'float'}
 
-    def update(self, state):
+    def accumulate(self, state):
         cfg = self.config or {}
         field = cfg.get('field', 'IFNg')
         cells = state.get('cells') or {}
@@ -198,9 +200,8 @@ class SpatialLayout(Visualization):
         self._frames.append({'time': self._step * TIMESTEP,
                              'cells': frame_cells, 'fields': frame_field})
         self._step += 1
-        return {'html': self._render()}
 
-    def _render(self):
+    def render(self):
         if not self._frames:
             return _empty('No spatial data yet.')
         cfg = self.config or {}
@@ -208,12 +209,12 @@ class SpatialLayout(Visualization):
         field = cfg.get('field', 'IFNg')
         title = cfg.get('title', 'Spatial layout')
         try:
-            fig = _viz.spatial_animation_figure(
+            # matplotlib-GIF method — returns a full HTML page (autoplaying gif).
+            return _viz.spatial_gif_html(
                 self._frames, bounds, title, field=field,
-                max_frames=int(cfg.get('max_frames', 60)))
+                max_frames=int(cfg.get('max_frames', 120)))
         except Exception as e:  # noqa: BLE001
             return _empty(f'spatial render failed: {e}')
-        return _fig_html(fig, height='620px')
 
     @classmethod
     def demo(cls):

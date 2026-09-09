@@ -100,12 +100,11 @@ def main() -> int:
         n_tumors=N_TUMORS, n_tcells=N_TCELLS, pd1_positive_frac=0.25,
         tumor_pdl1n_frac=0.9, bounds=BOUNDS, n_bins=N_BINS, seed=SEED)}, core=core)
     dense = snapshot_run(dense_sim, 100)   # 101 every-tick frames (~1.7 sim-h)
-    viz.write_html(viz.spatial_animation_figure(dense, BOUNDS,
-        'Microenvironment animation (25% PD1+) — cells over IFNg'),
-        viz_dir / 'spatial_animation.html', STUDY_SLUG)
+    # matplotlib-GIF method: true circles in µm data-coords (correct cell sizes)
+    # + every frame (smooth motion), the tumor-tcell 'video' analogue.
     viz.write_html_str(viz.spatial_gif_html(dense, BOUNDS,
-        '25% PD1+ — cells over IFNg field', max_frames=100),
-        viz_dir / 'spatial_gif.html')
+        'Microenvironment (25% PD1+) — cells over IFNg field', max_frames=100),
+        viz_dir / 'spatial_animation.html')
 
     # --- cross-condition tumor-count comparison ---
     tumor_series = {lab: [p['tumor_total'] for p in analyses[lab]['populations']]

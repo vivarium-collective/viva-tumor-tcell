@@ -68,10 +68,12 @@ def main() -> int:
         title='T-cell exhaustion vs. starting PD1+ fraction (mean ± std, 6 seeds)',
         yaxis='exhausted (PD1+) T cells (%)')
     viz.write_html(fig, viz_dir / 'pd1p_fraction.html', STUDY_SLUG)
-    fig2 = viz.spatial_animation_figure(
-        first_frames['75% PD1+ start'][:100], BOUNDS,   # dense every-tick window (smooth motion)
-        title='75% PD1+ start — T cells (green=active, orange=exhausted) over IFNg')
-    viz.write_html(fig2, viz_dir / 'spatial_75pct.html', STUDY_SLUG)
+    # matplotlib-GIF method: true circles in µm data-coords (correct sizes) +
+    # every frame (smooth motion). dense every-tick window.
+    viz.write_html_str(viz.spatial_gif_html(
+        first_frames['75% PD1+ start'][:100], BOUNDS,
+        '75% PD1+ start — T cells (green=active, orange=exhausted) over IFNg',
+        max_frames=100), viz_dir / 'spatial_75pct.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
     from viva_tumor_tcell.studies_lib import publish_figures

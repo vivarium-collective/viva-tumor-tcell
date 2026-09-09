@@ -76,9 +76,11 @@ def main() -> int:
     # dense every-tick window so motion is smooth (not teleporting between frames)
     dense_exp = frames_exp[:100] if frames_exp else []
     if dense_exp:
-        fig2 = viz.spatial_animation_figure(
-            dense_exp, BOUNDS, title='Killing assay (+T) — well-mixed cytotoxicity')
-        viz.write_html(fig2, viz_dir / 'spatial_killing.html', STUDY_SLUG)
+        # matplotlib-GIF method: true circles in µm data-coords (correct cell
+        # sizes) + every frame (smooth motion).
+        viz.write_html_str(viz.spatial_gif_html(
+            dense_exp, BOUNDS, 'Killing assay (+T) — well-mixed cytotoxicity',
+            max_frames=100), viz_dir / 'spatial_killing.html')
 
     # --- matching analysis figures (population + deaths by type), mirroring the
     #     original killing_experiment's death_group_plot / population_group_plot,
@@ -99,9 +101,6 @@ def main() -> int:
     viz.write_html(viz.deaths_figure(ath, a['deaths'],
         'Killing assay — cumulative tumor/T-cell deaths by type (+T)'),
         viz_dir / 'deaths.html', STUDY_SLUG)
-    viz.write_html_str(viz.spatial_gif_html(dense_exp or a['snapshots'], BOUNDS,
-        'Killing assay (+T) — cells over IFNg field', max_frames=100),
-        viz_dir / 'spatial_gif.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
     from viva_tumor_tcell.studies_lib import publish_figures
