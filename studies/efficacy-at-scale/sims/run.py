@@ -83,6 +83,8 @@ def main() -> int:
 
     print(json.dumps(verdict, indent=2))
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
+    from viva_tumor_tcell.studies_lib import publish_figures
+    publish_figures(STUDY_DIR)
     return 0
 
 

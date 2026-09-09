@@ -88,7 +88,7 @@ def main() -> int:
         Composite({'state': _kad(n_tumors=N_TUMORS, include_tcells=True, pdl1_positive_frac=0.5,
                                  tumor_t_ratio=1.5, pd1_positive_frac=0.25,
                                  bounds=BOUNDS, n_bins=N_BINS, seed=SEEDS[0])}, core=core),
-        N_STEPS, keep_snapshots=6)
+        N_STEPS, keep_snapshots=30)
     ath = a['times_h']
     viz.write_html(viz.population_group_figure(
         ath, a['populations'], ['tumor_total', 'tumor_PDL1n', 'tumor_PDL1p'],
@@ -97,8 +97,13 @@ def main() -> int:
     viz.write_html(viz.deaths_figure(ath, a['deaths'],
         'Killing assay — cumulative tumor/T-cell deaths by type (+T)'),
         viz_dir / 'deaths.html', STUDY_SLUG)
+    viz.write_html_str(viz.spatial_gif_html(a['snapshots'], BOUNDS,
+        'Killing assay (+T) — cells over IFNg field'),
+        viz_dir / 'spatial_gif.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
+    from viva_tumor_tcell.studies_lib import publish_figures
+    publish_figures(STUDY_DIR)
     return 0
 
 

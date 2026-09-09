@@ -95,6 +95,10 @@ def main() -> int:
     viz.write_html(viz.spatial_animation_figure(snaps, BOUNDS,
         'Microenvironment animation (25% PD1+) — cells over IFNg'),
         viz_dir / 'spatial_animation.html', STUDY_SLUG)
+    # animated GIF (the tumor-tcell 'video' analogue; paper colors + YlOrBr field)
+    viz.write_html_str(viz.spatial_gif_html(snaps, BOUNDS,
+        '25% PD1+ — cells over IFNg field'),
+        viz_dir / 'spatial_gif.html')
 
     # --- cross-condition tumor-count comparison ---
     tumor_series = {lab: [p['tumor_total'] for p in analyses[lab]['populations']]
@@ -120,6 +124,8 @@ def main() -> int:
     }
     print(json.dumps(verdict, indent=2))
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
+    from viva_tumor_tcell.studies_lib import publish_figures
+    publish_figures(STUDY_DIR)   # mirror viz -> reports/figures/<slug>/ for the workbench
     return 0
 
 

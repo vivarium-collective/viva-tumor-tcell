@@ -72,6 +72,7 @@ visualizations:
   - {name: tumor_count_vs_control, path: viz/tumor_count_vs_control.html}
   - {name: population_tumor, path: viz/population_tumor.html}
   - {name: deaths, path: viz/deaths.html}
+  - {name: spatial_gif, path: viz/spatial_gif.html}
   - {name: spatial_killing, path: viz/spatial_killing.html}
 
 baseline:

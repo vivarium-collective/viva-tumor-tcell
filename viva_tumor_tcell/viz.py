@@ -314,6 +314,79 @@ def cytotoxicity_figure(times_h, cyto_mean, cyto_sem, title='Cytotoxicity vs. co
     return _layout(fig, title, 'time (h)', 'cytotoxicity (%)')
 
 
+def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=6, max_frames=60):
+    """Render an animated GIF of the spatial dynamics (cells over the IFNg field)
+    with the paper's TAG_COLORS / YlOrBr, and return it wrapped in an HTML page
+    (autoplaying, looping <img>) — the tumor-tcell 'video' analogue.
+
+    Uses matplotlib (Agg) like the original's snapshots/video.
+    """
+    import base64
+    import io
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    from matplotlib import animation
+
+    bx, by = float(bounds[0]), float(bounds[1])
+    step = max(1, len(snapshots) // max_frames)
+    frames = snapshots[::step]
+    fmax = max([float(np.percentile(np.asarray(f['fields'].get(field, [[0.0]])), 99))
+                for f in frames] + [1e-9])
+
+    fig, ax = plt.subplots(figsize=(5.2, 5.2))
+    fig.patch.set_facecolor('white')
+
+    def draw(frame):
+        ax.clear()
+        arr = np.asarray(frame['fields'].get(field, np.zeros((1, 1))), dtype=float)
+        ax.imshow(arr.T, origin='lower', extent=[0, bx, 0, by], cmap='YlOrBr',
+                  vmin=0, vmax=fmax, alpha=0.85, aspect='equal', zorder=0)
+        for c in frame['cells'].values():
+            style = STATE_STYLE.get((c.get('cell_type'), c.get('cell_state') or ''))
+            if not style:
+                continue
+            loc = c.get('location', (0, 0))
+            r = float(c.get('radius', 5.0))
+            ax.add_patch(patches.Circle((loc[0], loc[1]), r, facecolor=style[1],
+                                        edgecolor='white', linewidth=0.4, zorder=2))
+        ax.set_xlim(0, bx); ax.set_ylim(0, by)
+        ax.set_title(f"{title}\nt = {frame['time']/3600.0:.1f} h", fontsize=10)
+        ax.set_xticks([]); ax.set_yticks([])
+        return []
+
+    anim = animation.FuncAnimation(fig, draw, frames=frames, blit=False)
+    import os
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(suffix='.gif', delete=False)
+    tmp.close()
+    try:
+        anim.save(tmp.name, writer=animation.PillowWriter(fps=fps))
+        plt.close(fig)
+        with open(tmp.name, 'rb') as fh:
+            b64 = base64.b64encode(fh.read()).decode('ascii')
+    finally:
+        os.unlink(tmp.name)
+    legend = ''.join(
+        f'<span style="display:inline-block;margin:0 8px 0 0;font:12px system-ui">'
+        f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;'
+        f'background:{color};border:1px solid #999;vertical-align:middle"></span> {label}</span>'
+        for (label, color) in STATE_STYLE.values())
+    return (
+        f'<!doctype html><html><body style="margin:0;background:{SURFACE};'
+        f'text-align:center;font-family:system-ui">'
+        f'<div style="padding:6px">{legend}</div>'
+        f'<img alt="{title}" style="max-width:100%;height:auto" '
+        f'src="data:image/gif;base64,{b64}"/></body></html>')
+
+
+def write_html_str(html, path):
+    """Write a pre-rendered HTML string (e.g. from spatial_gif_html)."""
+    from pathlib import Path
+    Path(path).write_text(html, encoding='utf-8')
+
+
 def write_html(fig, path, title):
     fig.write_html(str(path), include_plotlyjs='cdn', full_html=True,
                    config={'displayModeBar': True, 'responsive': True},

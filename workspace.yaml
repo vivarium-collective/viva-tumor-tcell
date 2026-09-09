@@ -8,6 +8,9 @@ package_path: viva_tumor_tcell
 runtime:
   max_generations: 1
   default_n_steps: 200
+  # Persist workbench runs with the XArray/zarr emitter (also the framework
+  # default; declared explicitly so every study run uses it).
+  default_emitter: xarray
 observables: []
 visualizations: []
 simulations: []

@@ -11,6 +11,21 @@ from vivarium_workbench.lib.run_log import append_run_event
 SEEDS = (1, 2, 3, 4, 5, 6)
 
 
+def publish_figures(study_dir):
+    """Mirror a study's viz/*.html into reports/figures/<slug>/ so the workbench
+    discovers them WITHOUT a runs.db (studies/<slug>/viz needs a workbench run;
+    reports/figures/<slug> does not — see study_spec.discover_viz_html_files)."""
+    import shutil
+    from pathlib import Path
+    study_dir = Path(study_dir)
+    slug = study_dir.name
+    ws_root = study_dir.parents[1]
+    dst = ws_root / 'reports' / 'figures' / slug
+    dst.mkdir(parents=True, exist_ok=True)
+    for f in (study_dir / 'viz').glob('*.html'):
+        shutil.copy2(f, dst / f.name)
+
+
 def record_run(root, slug, investigation, spec_id, label, params, n_steps, fn):
     """Emit started/completed events around ``fn()`` and return its result."""
     run_id = uuid.uuid4().hex
