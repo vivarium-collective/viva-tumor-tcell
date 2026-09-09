@@ -311,6 +311,30 @@ def killing_assay(core=None, *, n_tumors=40, tumor_t_ratio=1.0,
 
 
 @composite_generator(
+    name='killing_demo',
+    description='Cytotoxic-killing demonstration: MHCI-high PDL1+ tumors against '
+                'active PD1- T cells at a high T:tumor ratio, so contact-delivered '
+                'cytotoxic packets exceed the kill threshold and tumors visibly die. '
+                'A tuned demo of the killing mechanism (killing is rare at the '
+                'ported defaults, where most tumors are low-MHCI PDL1-).',
+    parameters={
+        'n_tumors': {'type': 'integer', 'default': 30, 'description': 'number of (PDL1+) tumor cells'},
+        'tumor_t_ratio': {'type': 'float', 'default': 2.0, 'description': 'T:tumor ratio (high = more killing)'},
+        'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
+    },
+    default_n_steps=500,
+    core_extensions=[build_core],
+)
+def killing_demo(core=None, *, n_tumors=30, tumor_t_ratio=2.0, seed=1):
+    # All tumors PDL1+ (MHCI-high → killable); all T cells PD1- (active, not
+    # PDL1-suppressed) at a high ratio so cytotoxic packets exceed threshold.
+    return killing_assay_document(
+        n_tumors=n_tumors, tumor_t_ratio=tumor_t_ratio, pdl1_positive_frac=1.0,
+        include_tcells=True, pd1_positive_frac=0.0, bounds=(200.0, 200.0),
+        n_bins=(20, 20), seed=seed)
+
+
+@composite_generator(
     name='lymph_node',
     description='Tumor microenvironment plus dendritic cells and a diffusing '
                 'tumor_debris field — DCs take up debris and activate.',

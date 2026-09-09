@@ -314,7 +314,7 @@ def cytotoxicity_figure(times_h, cyto_mean, cyto_sem, title='Cytotoxicity vs. co
     return _layout(fig, title, 'time (h)', 'cytotoxicity (%)')
 
 
-def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=10, max_frames=120):
+def spatial_gif_html(snapshots, bounds, title, field='IFNg', fps=12, max_frames=200):
     """Render an animated GIF of the spatial dynamics (cells over the IFNg field)
     with the paper's TAG_COLORS / YlOrBr, and return it wrapped in an HTML page
     (autoplaying, looping <img>) — the tumor-tcell 'video' analogue.

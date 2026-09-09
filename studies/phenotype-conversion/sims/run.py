@@ -83,11 +83,11 @@ def main() -> int:
         yaxis='PDL1p tumors (%)')
     viz.write_html(fig2, viz_dir / 'pdl1p_fraction.html', STUDY_SLUG)
     if frames_withT is not None:
-        # matplotlib-GIF method: true circles in µm data-coords (correct cell
-        # sizes) + every frame (smooth motion). dense every-tick window.
+        # matplotlib-GIF over the FULL run so the slow biology (IFNg buildup,
+        # phenotype flips, divisions) is visible, not just the first ~1.7 h.
         viz.write_html_str(viz.spatial_gif_html(
-            frames_withT[:100], BOUNDS, 'Active T cells build a local IFNg field',
-            max_frames=100), viz_dir / 'spatial_conversion.html')
+            frames_withT, BOUNDS, 'Active T cells build a local IFNg field (full run)',
+            max_frames=200), viz_dir / 'spatial_conversion.html')
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
     from viva_tumor_tcell.studies_lib import publish_figures

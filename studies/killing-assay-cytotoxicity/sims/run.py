@@ -73,14 +73,30 @@ def main() -> int:
               f'cytotoxicity {np.mean(cytotox):.0f} ± {np.std(cytotox):.0f}%',
         yaxis='tumor count')
     viz.write_html(fig1, viz_dir / 'tumor_count_vs_control.html', STUDY_SLUG)
-    # dense every-tick window so motion is smooth (not teleporting between frames)
-    dense_exp = frames_exp[:100] if frames_exp else []
-    if dense_exp:
-        # matplotlib-GIF method: true circles in µm data-coords (correct cell
-        # sizes) + every frame (smooth motion).
+    # Spatial GIF over the FULL run (subsampled) so the assay dynamics play out.
+    if frames_exp:
         viz.write_html_str(viz.spatial_gif_html(
-            dense_exp, BOUNDS, 'Killing assay (+T) — well-mixed cytotoxicity',
-            max_frames=100), viz_dir / 'spatial_killing.html')
+            frames_exp, BOUNDS, 'Killing assay (+T) — well-mixed cytotoxicity (full run)',
+            max_frames=220), viz_dir / 'spatial_killing.html')
+
+    # KILLING DEMO — MHCI-high PDL1+ tumors vs active PD1- T cells at 2:1, where
+    # cytotoxic packets exceed the kill threshold and tumors visibly die (killing
+    # is rare at the ported defaults / low-MHCI PDL1- tumors, so this is a tuned
+    # demonstration of the mechanism). Uses the killing_demo composite.
+    import random as _rnd
+    from process_bigraph import Composite as _Comp
+    from viva_tumor_tcell.run import snapshot_run as _snap
+    _rnd.seed(SEEDS[0])
+    demo_doc = killing_assay_document(
+        n_tumors=30, tumor_t_ratio=2.0, pdl1_positive_frac=1.0, include_tcells=True,
+        pd1_positive_frac=0.0, bounds=(200.0, 200.0), n_bins=(20, 20), seed=SEEDS[0])
+    demo_frames = _snap(_Comp({'state': demo_doc}, core=core), 500)
+    n_kill = len({cid for f in demo_frames for cid, c in f['cells'].items()
+                  if c.get('cell_type') == 'tumor' and c.get('death') == 'Tcell_death'})
+    viz.write_html_str(viz.spatial_gif_html(
+        demo_frames, (200.0, 200.0),
+        f'Killing demo — PDL1+ tumors killed by active T cells ({n_kill} kills)',
+        max_frames=220), viz_dir / 'spatial_killing_demo.html')
 
     # --- matching analysis figures (population + deaths by type), mirroring the
     #     original killing_experiment's death_group_plot / population_group_plot,

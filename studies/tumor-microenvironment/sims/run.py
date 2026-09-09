@@ -92,19 +92,29 @@ def main() -> int:
     viz.write_html(viz.snapshots_panel_figure(panel, BOUNDS,
         'Spatial snapshots (25% PD1+): cells over IFNg field'),
         viz_dir / 'snapshots.html', STUDY_SLUG)
-    # Animation + GIF from a DENSE, every-tick short run so motion is smooth
-    # (T cells random-walk ~10 µm/tick; coarse full-run frames look like teleporting).
+    # Spatial GIF over the FULL run so divisions + deaths are visible, not just
+    # the first ~1.7 h. max_frames subsamples for a smooth, lightweight loop.
     from viva_tumor_tcell.run import snapshot_run
     random.seed(SEED)
     dense_sim = Composite({'state': tumor_microenvironment_document(
         n_tumors=N_TUMORS, n_tcells=N_TCELLS, pd1_positive_frac=0.25,
         tumor_pdl1n_frac=0.9, bounds=BOUNDS, n_bins=N_BINS, seed=SEED)}, core=core)
-    dense = snapshot_run(dense_sim, 100)   # 101 every-tick frames (~1.7 sim-h)
-    # matplotlib-GIF method: true circles in µm data-coords (correct cell sizes)
-    # + every frame (smooth motion), the tumor-tcell 'video' analogue.
+    dense = snapshot_run(dense_sim, N_STEPS)   # full run, every tick
     viz.write_html_str(viz.spatial_gif_html(dense, BOUNDS,
-        'Microenvironment (25% PD1+) — cells over IFNg field', max_frames=100),
+        'Microenvironment (25% PD1+) — cells over IFNg field (full run)', max_frames=220),
         viz_dir / 'spatial_animation.html')
+
+    # LARGER-SCALE spatial GIF — a ~4x tumor mass in a bigger chamber, so
+    # population-scale phenomena (mass growth, field gradients across the tissue)
+    # are visible. Single seed, full run.
+    random.seed(SEED)
+    big_sim = Composite({'state': tumor_microenvironment_document(
+        n_tumors=150, n_tcells=30, pd1_positive_frac=0.25, tumor_pdl1n_frac=0.9,
+        bounds=(650.0, 650.0), n_bins=(65, 65), seed=SEED)}, core=core)
+    big = snapshot_run(big_sim, N_STEPS)
+    viz.write_html_str(viz.spatial_gif_html(big, (650.0, 650.0),
+        'Larger-scale microenvironment (150 tumors, 30 T cells) over IFNg field', max_frames=220),
+        viz_dir / 'spatial_large_scale.html')
 
     # --- cross-condition tumor-count comparison ---
     tumor_series = {lab: [p['tumor_total'] for p in analyses[lab]['populations']]

@@ -92,6 +92,7 @@ visualizations:
   - {name: deaths, path: viz/deaths.html}
   - {name: snapshots, path: viz/snapshots.html}
   - {name: spatial_animation, path: viz/spatial_animation.html}
+  - {name: spatial_large_scale, path: viz/spatial_large_scale.html}
   - {name: tumor_count_by_condition, path: viz/tumor_count_by_condition.html}
 
 baseline:
