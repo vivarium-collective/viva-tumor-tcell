@@ -211,7 +211,7 @@ _save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('', {}, RUNS_DB, STUD
 #
 # | test | measures | passes if |
 # | --- | --- | --- |
-# | exhaustion_tracks_starting_fraction | final PD1+ T-cell fraction (25% start vs 75% start), 6 seeds |  |
+# | exhaustion_tracks_starting_fraction | kind=scalar of=final PD1+ T-cell fraction (25% start vs 75% start), 6 seeds |  |
 
 # ## Study: IFNg secretion and PDL1n->PDL1p conversion (`phenotype-conversion`)
 #
@@ -269,7 +269,7 @@ _save_viz('phenotype-conversion', 'spatial_conversion', _render_one('', {}, RUNS
 #
 # | test | measures | passes if |
 # | --- | --- | --- |
-# | active_tcells_secrete_ifng | peak IFNg field (with vs without T cells), 6 seeds |  |
+# | active_tcells_secrete_ifng | kind=scalar of=peak IFNg field (with vs without T cells), 6 seeds |  |
 
 # ## Study: In-vitro-style killing / cytotoxicity assay (`killing-assay-cytotoxicity`)
 #
@@ -322,7 +322,7 @@ _save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('', {}, R
 #
 # | test | measures | passes if |
 # | --- | --- | --- |
-# | positive_cytotoxicity | paired cytotoxicity % across 6 seeds |  |
+# | positive_cytotoxicity | kind=scalar of=paired cytotoxicity % across 6 seeds |  |
 
 # ## Study: T-cell efficacy vs. PD1+ fraction, at larger scale (`efficacy-at-scale`)
 #
@@ -371,7 +371,7 @@ _save_viz('efficacy-at-scale', 'tumor_count_at_scale', _render_one('', {}, RUNS_
 #
 # | test | measures | passes if |
 # | --- | --- | --- |
-# | efficacy_ordering_at_scale | per-seed suppression, 25% vs 75% PD1+ (150 cells, 1500 ticks, 3 seeds) |  |
+# | efficacy_ordering_at_scale | kind=scalar of=per-seed suppression, 25% vs 75% PD1+ (150 cells, 1500 ticks, 3 seeds) |  |
 
 # ## Open decisions
 # - Run the headline conditions at full paper scale (1200 cells, 3 days) on the mini to tighten the ~9% suppression estimate (a tens-of-hours, multi-GB job)?
