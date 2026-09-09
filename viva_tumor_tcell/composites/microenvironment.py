@@ -237,6 +237,13 @@ def lymph_node_document(
     name='tumor_tcell_basic',
     description='Small well-mixed chamber of tumor + T cells sharing a diffusing '
                 'IFNg field; collisions via viva-munk (M1 core-seam demo).',
+    parameters={
+        'n_tumors': {'type': 'integer', 'default': 8, 'description': 'number of tumor cells'},
+        'n_tcells': {'type': 'integer', 'default': 3, 'description': 'number of T cells'},
+        'tumor_pdl1n_frac': {'type': 'float', 'default': 0.9, 'description': 'fraction of tumors starting PDL1n'},
+        'tcell_pd1n_frac': {'type': 'float', 'default': 0.75, 'description': 'fraction of T cells starting PD1-'},
+        'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
+    },
     default_n_steps=200,
 )
 def tumor_tcell_basic(core=None, *, n_tumors=8, n_tcells=3,
@@ -251,6 +258,13 @@ def tumor_tcell_basic(core=None, *, n_tumors=8, n_tcells=3,
     description='CODEX layout: a central tumor mass ringed by T cells over a '
                 'diffusing IFNg field. pd1_positive_frac + n_tcells select the '
                 'no-T / 25% PD1+ / 75% PD1+ headline conditions.',
+    parameters={
+        'n_tumors': {'type': 'integer', 'default': 60, 'description': 'tumor cells in the central mass'},
+        'n_tcells': {'type': 'integer', 'default': 6, 'description': 'T cells in the ring (0 = no-T control)'},
+        'pd1_positive_frac': {'type': 'float', 'default': 0.25, 'description': 'fraction of T cells starting PD1+ (exhausted)'},
+        'tumor_pdl1n_frac': {'type': 'float', 'default': 0.9, 'description': 'fraction of tumors starting PDL1n'},
+        'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
+    },
     default_n_steps=300,
 )
 def tumor_microenvironment(core=None, *, n_tumors=60, n_tcells=6,
@@ -264,6 +278,14 @@ def tumor_microenvironment(core=None, *, n_tumors=60, n_tcells=6,
     name='killing_assay',
     description='Well-mixed in-vitro cytotoxicity assay: tumor cells at a chosen '
                 'PDL1+ fraction, with or without T cells (matched no-T control).',
+    parameters={
+        'n_tumors': {'type': 'integer', 'default': 40, 'description': 'number of tumor cells'},
+        'tumor_t_ratio': {'type': 'float', 'default': 1.0, 'description': 'T:tumor ratio'},
+        'pdl1_positive_frac': {'type': 'float', 'default': 0.0, 'description': 'fraction of tumors starting PDL1+'},
+        'include_tcells': {'type': 'boolean', 'default': True, 'description': 'include T cells (False = matched no-T control)'},
+        'pd1_positive_frac': {'type': 'float', 'default': 0.25, 'description': 'fraction of T cells starting PD1+'},
+        'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
+    },
     default_n_steps=300,
 )
 def killing_assay(core=None, *, n_tumors=40, tumor_t_ratio=1.0,
@@ -279,6 +301,13 @@ def killing_assay(core=None, *, n_tumors=40, tumor_t_ratio=1.0,
     name='lymph_node',
     description='Tumor microenvironment plus dendritic cells and a diffusing '
                 'tumor_debris field — DCs take up debris and activate.',
+    parameters={
+        'n_tumors': {'type': 'integer', 'default': 40, 'description': 'number of tumor cells'},
+        'n_tcells': {'type': 'integer', 'default': 6, 'description': 'number of T cells'},
+        'n_dendritic': {'type': 'integer', 'default': 3, 'description': 'number of dendritic cells'},
+        'pd1_positive_frac': {'type': 'float', 'default': 0.25, 'description': 'fraction of T cells starting PD1+'},
+        'seed': {'type': 'integer', 'default': 1, 'description': 'RNG seed'},
+    },
     default_n_steps=300,
 )
 def lymph_node(core=None, *, n_tumors=40, n_tcells=6, n_dendritic=3,
