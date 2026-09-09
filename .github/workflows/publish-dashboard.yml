@@ -57,6 +57,11 @@ jobs:
         run: |
           uv venv
           uv pip install "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+          # viva-munk from git@main, NOT PyPI: the released viva-munk 0.0.2 still
+          # imports spatio_flux (removed on main after that tag), so a PyPI install
+          # makes `import viva_tumor_tcell.core` fail with "No module named
+          # 'spatio_flux'" and no composites register. git@main is spatio_flux-free.
+          uv pip install "viva-munk @ git+https://github.com/vivarium-collective/Viva-munk.git@main"
           uv pip install -e . \
             || uv pip install -e . --no-deps \
             || echo "workspace has no installable build; composites render from spec only"
