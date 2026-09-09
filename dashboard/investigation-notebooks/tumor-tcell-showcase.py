@@ -390,6 +390,16 @@ print("No recorded runs for this study; nothing to reproduce.")
 # tumor_count_vs_control
 _save_viz('killing-assay-cytotoxicity', 'tumor_count_vs_control', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
+# **population_tumor**
+
+# population_tumor
+_save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **deaths**
+
+# deaths
+_save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
 # **spatial_killing**
 
 # spatial_killing
