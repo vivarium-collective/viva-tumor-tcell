@@ -184,3 +184,20 @@ class TumorCellProcess(Process):
             d['location'] = (float(dloc[0]), float(dloc[1]))
             add[did] = d
         return {'_add': add, '_remove': [agent_id]}
+
+
+# --- workbench viewer contract (per-port meanings + units) ---
+TumorCellProcess.contract = {
+    'summary': "Tumor cell behavior — proliferative PDL1n <-> arrested PDL1p. Internalizing "
+               "enough IFNg (>= 15000 counts) flips PDL1n -> PDL1p (MHCI/PDL1-high, G0-arrested); "
+               "dies by apoptosis or when received cytotoxic packets exceed threshold, releasing tumor_debris.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); per tumor cell reads cell_state, "
+                        "internal_IFNg (counts), receive_cytotoxic (packets), and sampled local "
+                        "IFNg concentration (ng/mL)."},
+    'outputs': {'cells': "Per tumor cell: PDL1n -> PDL1p switch; present_PDL1/present_MHCI equilibria "
+                         "(5e4) when PDL1p; IFNg internalization (internal_IFNg + / field exchange -); "
+                         "death (+ 1.4e15 tumor_debris); PDL1n division into two daughters (_add/_remove)."},
+    'assumptions': ["Only PDL1n tumors divide (PDL1p are arrested); death releases 1.4e15 debris "
+                    "molecules; diameter 15 um, mass 8 ng. Parameters transcribed from tumor-tcell / "
+                    "Hickey, Agmon et al., Cell Systems 2024."],
+}

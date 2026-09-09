@@ -136,3 +136,21 @@ class TumorTcellPhysics(Process):
                 update[cid] = u
 
         return {'cells': update}
+
+
+# --- workbench viewer contract (per-port meanings + units) ---
+TumorTcellPhysics.contract = {
+    'summary': "Cell collisions (via a real viva-munk pymunk space) + neighbor exchange (replaces "
+               "tumor-tcell's Neighbors): each tick gives every cell speed x a random direction, steps "
+               "the physics (walls, jitter, substeps, circle-circle collisions), then does the ligand / "
+               "cytotoxic-packet exchange.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); reads location (um), radius (um), mass (ng), "
+                        "speed (um/s), presented membrane ligands (present_TCR/PD1/PDL1/MHCI) and "
+                        "transfer_cytotoxic (packets)."},
+    'outputs': {'cells': "Per cell: location delta (um) after collisions + migration; accept_* set from "
+                         "neighbours' present_* (membrane binding); a tumor's receive_cytotoxic += the "
+                         "packets transferred by its contacting T cells."},
+    'assumptions': ["Overdamped persistent-random-walk migration (velocity re-randomized each tick at the "
+                    "cell's speed); neighbors are within 1 um of the cells' membranes; a T cell polarizes "
+                    "to its single nearest tumor, a tumor collects all its T-cell neighbors."],
+}

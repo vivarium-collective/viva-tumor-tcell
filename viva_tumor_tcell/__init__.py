@@ -7,9 +7,12 @@ __version__ = '0.1.0'
 
 from .processes import (
     TumorCellProcess, TCellProcess, TumorTcellPhysics, DiffusionField)
+from .visualizations import (
+    PopulationTimeseries, PhenotypeFractions, SpatialLayout)
 from .core import build_core
 
 __all__ = [
     'TumorCellProcess', 'TCellProcess', 'TumorTcellPhysics', 'DiffusionField',
+    'PopulationTimeseries', 'PhenotypeFractions', 'SpatialLayout',
     'build_core',
 ]

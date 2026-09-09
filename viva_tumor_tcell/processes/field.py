@@ -138,3 +138,20 @@ class DiffusionField(Process):
         # double the field every tick.
         delta_fields = {m: fields[m] - original[m] for m in self.molecules}
         return {'fields': delta_fields, 'cells': cell_update}
+
+
+# --- workbench viewer contract (per-port meanings + units) ---
+DiffusionField.contract = {
+    'summary': "Soluble-field manager (tumor-tcell Fields + LocalField consolidated): deposits each "
+               "cell's exchange counts into its field bin, diffuses + decays the 2D concentration fields, "
+               "and samples each cell's local concentration back onto it.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); reads each cell's location (um) and exchange "
+                        "amounts (molecule counts).",
+               'fields': "2D concentration grids per molecule (ng/mL) on an n_bins grid over bounds (um)."},
+    'outputs': {'cells': "Per cell: sampled local concentrations (local, ng/mL) and exchange reset; cells "
+                         "flagged dead are removed (_remove).",
+                'fields': "Field deltas (ng/mL) after deposit + diffuse + decay."},
+    'assumptions': ["IFNg: D = 1.25e-3 cm^2/day, 4.5 h e-fold decay. tumor_debris: D = 0.0864 cm^2/day, no "
+                    "decay. Counts <-> concentration via Avogadro / molecular weight (IFNg 17000, debris "
+                    "29000 g/mol) / bin volume (depth um)."],
+}

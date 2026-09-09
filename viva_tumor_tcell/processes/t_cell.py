@@ -247,3 +247,21 @@ class TCellProcess(Process):
                 d['PD1p_divide_count'] = float(agent.get('PD1p_divide_count', 0.0) or 0.0) + 1
             add[did] = d
         return {'_add': add, '_remove': [agent_id]}
+
+
+# --- workbench viewer contract (per-port meanings + units) ---
+TCellProcess.contract = {
+    'summary': "CD8+ T cell behavior — active PD1- <-> exhausted PD1+. In contact with an MHCI+ tumor "
+               "it secretes IFNg (which converts tumors) and cytotoxic packets (which kill); TCR "
+               "down-regulates after ~6 h of activation then a refractory period; repeated cycles or "
+               "division count drive PD1- -> PD1+ exhaustion.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); per T cell reads cell_state, accept_MHCI / "
+                        "accept_PDL1 (from the contacted tumor), present_TCR, TCR + velocity timers (s), "
+                        "refractory / divide counts, and cytotoxic stockpile."},
+    'outputs': {'cells': "Per T cell: IFNg secretion (field exchange, counts) and transfer_cytotoxic "
+                         "(packets) in contact; TCR up/down-regulation; PD1- -> PD1+ exhaustion; migration "
+                         "speed (um/s, with dwell logic); division into two daughters (_add/_remove)."},
+    'assumptions': ["PD1- secretes ~10x more IFNg/cytotoxic than PD1+; production is 4-fold reduced vs an "
+                    "MHCI-low tumor; migration 10 (PD1-) / 5 (PD1+) um/min; diameter 7.5 um, mass 2 ng. "
+                    "Parameters from tumor-tcell."],
+}

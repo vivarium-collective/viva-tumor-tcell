@@ -45,6 +45,33 @@ def test_basic_composite_builds_and_runs():
     assert frames[-1]['n_tumor'] >= 1
 
 
+def test_composites_declare_renderable_visualizations():
+    """Every composite embeds Visualization steps whose render() produces HTML —
+    this is what the Composite Explorer's Visualizations tab shows."""
+    from process_bigraph.visualization import render_results
+    from viva_tumor_tcell.composites.microenvironment import (
+        tumor_microenvironment_document, killing_assay_document, lymph_node_document)
+    core = build_core()
+    docs = {
+        'basic': lambda: tumor_tcell_basic_document(n_tumors=6, n_tcells=3, seed=1),
+        'microenv': lambda: tumor_microenvironment_document(
+            n_tumors=8, n_tcells=3, bounds=(150., 150.), n_bins=(15, 15)),
+        'killing': lambda: killing_assay_document(
+            n_tumors=8, bounds=(150., 150.), n_bins=(15, 15)),
+        'lymph_node': lambda: lymph_node_document(
+            n_tumors=8, n_tcells=2, n_dendritic=2, bounds=(150., 150.), n_bins=(15, 15)),
+    }
+    for name, fn in docs.items():
+        sim = Composite({'state': fn()}, core=core)
+        for _ in range(5):
+            sim.run(60.0)
+        rendered = render_results(sim)
+        assert len(rendered) == 3, f'{name}: expected 3 viz, got {list(rendered)}'
+        for path, payload in rendered.items():
+            html = payload.get('html', '')
+            assert 'plotly' in html.lower(), f'{name} {path}: not a Plotly figure'
+
+
 def test_ifng_feedback_and_killing_in_contact():
     """A PDL1p tumor (MHCI-high) surrounded by non-migrating T-cells: the T-cells
     secrete IFNg into the field and transfer cytotoxic packets; the tumor's

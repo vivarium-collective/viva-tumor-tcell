@@ -24,6 +24,7 @@ from viva_superpowers.composite_generator import composite_generator
 
 from ..core import build_core  # noqa: F401  (ensures type/link registration on import)
 from ..types import cells_store, MOLECULES
+from ..visualizations import viz_steps
 
 TIMESTEP = 60.0
 
@@ -146,6 +147,7 @@ def tumor_tcell_basic_document(
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
         'tumor_behavior': _behavior_process('TumorCellProcess'),
         'tcell_behavior': _behavior_process('TCellProcess'),
+        **viz_steps(bounds=(bx, by), field='IFNg'),
     }
 
 
@@ -180,6 +182,7 @@ def tumor_microenvironment_document(
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
         'tumor_behavior': _behavior_process('TumorCellProcess'),
         'tcell_behavior': _behavior_process('TCellProcess'),
+        **viz_steps(bounds=(bx, by), field='IFNg'),
     }
 
 
@@ -208,6 +211,7 @@ def killing_assay_document(
         'field': _field(bx, by, nx, ny, depth, ['IFNg']),
         'tumor_behavior': _behavior_process('TumorCellProcess'),
         'tcell_behavior': _behavior_process('TCellProcess'),
+        **viz_steps(bounds=(bx, by), field='IFNg'),
     }
 
 

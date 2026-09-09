@@ -142,3 +142,19 @@ class DendriticCellProcess(Process):
             d['location'] = (float(dloc[0]), float(dloc[1]))
             add[did] = d
         return {'_add': add, '_remove': [agent_id]}
+
+
+# --- workbench viewer contract (per-port meanings + units) ---
+DendriticCellProcess.contract = {
+    'summary': "Dendritic cell — takes up tumor_debris from the field; once internalized debris exceeds "
+               "415000 counts it activates and presents MHCI/PDL1 (the antigen-presentation arm of the "
+               "lymph-node extension).",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); per dendritic cell reads cell_state "
+                        "(inactive/active), internal_tumor_debris (counts), and local tumor_debris "
+                        "concentration (ng/mL)."},
+    'outputs': {'cells': "Per dendritic cell: debris uptake (internal_tumor_debris + / field exchange -); "
+                         "inactive -> active at threshold; present_MHCI/present_PDL1 (5e4) when active; "
+                         "apoptosis; division when active (_add/_remove)."},
+    'assumptions': ["Only active DCs divide; uptake ~300 molecules/cell/min; activation threshold 415000 "
+                    "counts; diameter 10 um, mass 2 ng."],
+}
