@@ -12,6 +12,7 @@ from .processes.t_cell import TCellProcess
 from .processes.dendritic_cell import DendriticCellProcess
 from .processes.physics import TumorTcellPhysics
 from .processes.field import DiffusionField
+from .processes.observables import Observables
 from .visualizations import register_visualizations
 
 
@@ -25,5 +26,6 @@ def build_core(core=None):
     core.register_link('DendriticCellProcess', DendriticCellProcess)
     core.register_link('TumorTcellPhysics', TumorTcellPhysics)
     core.register_link('DiffusionField', DiffusionField)
+    core.register_link('Observables', Observables)
     register_visualizations(core)
     return core

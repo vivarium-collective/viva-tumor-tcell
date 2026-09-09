@@ -77,6 +77,33 @@ def test_composites_declare_renderable_visualizations():
                 assert 'plotly' in html.lower(), f'{name} {key}: not a Plotly figure'
 
 
+def test_persist_run_writes_readable_scalar_store(tmp_path):
+    """persist_run writes a runs.db with a per-step scalar observables history
+    (replace semantics, not accumulating) — the store the Results tab previews."""
+    import pytest
+    load_history = pytest.importorskip('pbg_emitters.sqlite_emitter').load_history
+    from pbg_emitters.sqlite_emitter import list_simulations
+    from viva_tumor_tcell.studies_lib import persist_run
+    from viva_tumor_tcell.composites.microenvironment import tumor_microenvironment_document
+    core = build_core()
+    study_dir = tmp_path / 'phenotype-conversion'   # slug derived from dir name
+    study_dir.mkdir()
+    doc = tumor_microenvironment_document(n_tumors=15, n_tcells=6, bounds=(200., 200.),
+                                          n_bins=(20, 20), seed=1)
+    sim_id = persist_run(study_dir, core, doc, n_steps=20, name='test', investigation='inv')
+    db = str(study_dir / 'runs.db')
+    sims = list_simulations(db)
+    assert any(s['simulation_id'] == sim_id for s in sims)
+    h = load_history(db, sim_id)
+    assert len(h) >= 20
+    obs = h[-1].get('observables') or {}
+    # counts stay near the real cell count (NOT summed across 20 ticks)
+    assert 10 <= obs.get('tumor_total', 0) <= 60
+    # fractions are valid probabilities
+    assert 0.0 <= obs.get('pd1p_fraction', -1) <= 1.0
+    assert 0.0 <= obs.get('pdl1p_fraction', -1) <= 1.0
+
+
 def test_ifng_feedback_and_killing_in_contact():
     """A PDL1p tumor (MHCI-high) surrounded by non-migrating T-cells: the T-cells
     secrete IFNg into the field and transfer cytotoxic packets; the tumor's
