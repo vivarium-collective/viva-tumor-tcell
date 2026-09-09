@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Study: efficacy-at-scale</title>
+<title>Study: tumor-microenvironment</title>
 <link rel="stylesheet" href="/viva-tumor-tcell/dashboard/assets/style.css">
 <link rel="stylesheet" href="/viva-tumor-tcell/dashboard/assets/progress-track.css">
 <!-- Inherit the workbench light/dark theme (this page loads in an iframe;
@@ -14,7 +14,7 @@
 <header class="study-header">
   <div style="display:flex; align-items:baseline; gap:12px; justify-content:space-between;">
   <h1 class="study-title">
-    <span class="study-name" id="study-name" data-slug="efficacy-at-scale" title="efficacy-at-scale">T-cell efficacy vs. PD1+ fraction, at larger scale</span>
+    <span class="study-name" id="study-name" data-slug="tumor-microenvironment" title="tumor-microenvironment">Tumor microenvironment (headline experiment) + full figure suite</span>
     
     <span class="study-kind-tag study-kind-computational" data-study-kind="computational" title="Study kind">computational</span>
     
@@ -34,7 +34,7 @@
     
 
     
-    <div id="readiness-panel" data-slug="efficacy-at-scale"></div>
+    <div id="readiness-panel" data-slug="tumor-microenvironment"></div>
 
     
     
@@ -169,9 +169,9 @@
 
 
 
-<p id="study-question-headline" class="study-question-headline"><span class="q-glyph">Q</span> Does the paper&#39;s efficacy-vs-exhaustion ordering — active (25% PD1+) T cells suppress
-tumor growth more than exhausted (75% PD1+) T cells — emerge when the simulation is scaled
-up from the tractable 40-cell / 600-tick studies?
+<p id="study-question-headline" class="study-question-headline"><span class="q-glyph">Q</span> Does the ported model reproduce tumor-tcell&#39;s headline experiment
+(tumor_microenvironment_experiment, id &#39;5&#39;) — a central tumor mass ringed by
+T cells under the three CODEX conditions — and its full analysis figure suite?
 </p>
 
 <nav class="study-tabs" aria-label="Study sections">
@@ -583,18 +583,19 @@ up from the tractable 40-cell / 600-tick studies?
 
     <div class="ctr-block">
       <h2 class="overview-label ctr-h">Claim</h2>
-      <p class="ctr-text">Does the paper&#39;s efficacy-vs-exhaustion ordering — active (25% PD1+) T cells suppress
-tumor growth more than exhausted (75% PD1+) T cells — emerge when the simulation is scaled
-up from the tractable 40-cell / 600-tick studies?
+      <p class="ctr-text">Does the ported model reproduce tumor-tcell&#39;s headline experiment
+(tumor_microenvironment_experiment, id &#39;5&#39;) — a central tumor mass ringed by
+T cells under the three CODEX conditions — and its full analysis figure suite?
 </p>
       
-      <div class="ctr-context">At 150 cells and 1500 ticks (vs. 40/600 in the tractable studies) the paper&#39;s central
-finding appears. Active (25% PD1+) T cells suppressed tumor growth (285 ± 15 tumors vs.
-315 ± 24 no-T) while exhausted (75% PD1+) T cells did not (335 ± 11, indistinguishable
-from / slightly above the no-T control). The suppression ordering — 25% PD1+ better than
-75% PD1+ — held in all 3 seeds, versus only 3/6 at the tractable scale, confirming the
-effect was real but under-powered rather than absent. Conversion tracked it: PDL1p reached
-14–42% with active T cells vs. 5–9% with exhausted and 3–5% with none.
+      <div class="ctr-context">This is the ported analogue of tumor-tcell&#39;s headline run: a central tumor mass with a
+ring of T cells (25% PD1+ in the headline condition), sharing a diffusing IFNg field, with
+cell–cell collisions from viva-munk. The study emits the same figures the original&#39;s
+individual_analysis produces — tumor and T-cell population-by-state timeseries, cumulative
+divisions, cumulative deaths by type, an 8-panel spatial snapshot montage, and a spatial
+animation (the video analogue) — using the paper&#39;s cell-state colors (PDL1n=indianred,
+PDL1p=skyblue, PD1n=darkorange, PD1p=limegreen) over the YlOrBr IFNg field. A cross-condition
+panel compares tumor count across no-T / 25% / 75% PD1+.
 </div>
       
     </div>
@@ -605,7 +606,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
       
       <div class="ctr-meta">
         <div class="ctr-meta-row"><span class="ctr-meta-k">Model</span> <code>baseline</code></div>
-        <div class="ctr-meta-row"><span class="ctr-meta-k">Measures</span> <span class="ctr-meta-item">efficacy_ordering_at_scale</span></div>
+        <div class="ctr-meta-row"><span class="ctr-meta-k">Measures</span> <span class="ctr-meta-item">reproduces_headline_suite</span></div>
       </div>
       
     </div>
@@ -631,12 +632,12 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
   <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
     <h2 class="overview-label" style="margin:0">Model composition</h2>
     
-    <button type="button" class="btn-mini" onclick="window._vivStudyNotebookFromCard(event, 'efficacy-at-scale', '')" title="Download a runnable Jupyter notebook for THIS study — its composite + editable parameters + figures">↓ notebook</button>
+    <button type="button" class="btn-mini" onclick="window._vivStudyNotebookFromCard(event, 'tumor-microenvironment', '')" title="Download a runnable Jupyter notebook for THIS study — its composite + editable parameters + figures">↓ notebook</button>
   </div>
 
   
   
-  <div id="model-composite-cards" class="model-composite-cards" data-study="efficacy-at-scale"
+  <div id="model-composite-cards" class="model-composite-cards" data-study="tumor-microenvironment"
        data-study-config="">
     <p class="muted" style="font-size:0.85em;margin:0">Loading composite card(s)…</p>
   </div>
@@ -655,7 +656,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
   <div class="overview-section" id="model-section">
     <h3>Runnable models <span class="muted" style="font-size:0.85em;font-weight:normal">— the composite(s) this study simulates</span></h3>
     
-    <div class="cond-block" data-model-composite="viva_tumor_tcell.composites.microenvironment.tumor_microenvironment" data-model-overrides='{"n_tcells": 40, "n_tumors": 150, "pd1_positive_frac": 0.25}'>
+    <div class="cond-block" data-model-composite="viva_tumor_tcell.composites.microenvironment.tumor_microenvironment" data-model-overrides='{"n_tcells": 12, "n_tumors": 60, "pd1_positive_frac": 0.25}'>
       <div class="cond-block-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <strong>baseline</strong>
         
@@ -721,7 +722,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
 
   <h4>Latest run preview</h4>
   <p class="muted" style="font-size:0.9em">Per-store sparkline + first/last/min/max from the most recent run's emitted trajectory. This is a downsampled PREVIEW, not the full data — use the per-store or Download-all links for the complete arrays.</p>
-  <div id="results-preview" data-study="efficacy-at-scale">
+  <div id="results-preview" data-study="tumor-microenvironment">
     <p class="empty-message">Loading results preview…</p>
   </div>
 
@@ -745,9 +746,9 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
   <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
     <span class="muted" style="margin-right:auto;font-weight:600">Analysis result files</span>
     <a id="data-download-all" class="btn-mini" style="display:none"
-       href="/api/study-analysis-zip?study=efficacy-at-scale">Download all (.zip)</a>
+       href="/api/study-analysis-zip?study=tumor-microenvironment">Download all (.zip)</a>
   </div>
-  <div id="data-files" data-study="efficacy-at-scale">
+  <div id="data-files" data-study="tumor-microenvironment">
     <p class="empty-message">Loading result files…</p>
   </div>
 </div>
@@ -768,7 +769,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
     interval/buffer, output location, and emit scope — from
     <code>lib/emitters.py</code> and this study's (or the workspace's)
     <code>runtime.default_emitter</code>.</p>
-    <div id="readouts-emitter" data-study="efficacy-at-scale">
+    <div id="readouts-emitter" data-study="tumor-microenvironment">
       <p class="empty-message">Loading emitter configuration…</p>
     </div>
 
@@ -780,7 +781,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
     
     <div id="readouts-download" style="margin:0 0 16px 0"></div>
 
-    <div id="readouts-table" data-study="efficacy-at-scale">
+    <div id="readouts-table" data-study="tumor-microenvironment">
       <p class="empty-message">Loading readouts from the composite emit plan…</p>
     </div>
 
@@ -788,7 +789,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
     <p class="muted" style="font-size:0.9em">Store path, dtype, shape
     <code>(n_steps, …)</code>, units, and a best-effort byte estimate for each emitted
     leaf.</p>
-    <div id="readouts-shapes" data-study="efficacy-at-scale">
+    <div id="readouts-shapes" data-study="tumor-microenvironment">
       <p class="empty-message">Loading output shapes…</p>
     </div>
 
@@ -812,7 +813,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
     
     
     <div class="viz-actions-row" style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-      <button type="button" class="btn-mini" onclick="window._vivStudyFiguresFromCard(event, 'efficacy-at-scale')" title="Download this study's visualizations (figure panels + its composite) as a zip">↓ visualizations</button>
+      <button type="button" class="btn-mini" onclick="window._vivStudyFiguresFromCard(event, 'tumor-microenvironment')" title="Download this study's visualizations (figure panels + its composite) as a zip">↓ visualizations</button>
     </div>
     
 
@@ -876,10 +877,10 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
     
     
     
-    <li class="expected-behavior-item" id="bt-efficacy_ordering_at_scale"
+    <li class="expected-behavior-item" id="bt-reproduces_headline_suite"
         data-test-kind="behavioral"
         
-        data-pytest-node="efficacy_ordering_at_scale"
+        data-pytest-node="reproduces_headline_suite"
         data-classification="unclassified"
         data-result="pending"
         style="margin: 0 0 10px 0; padding: 10px 12px; border-left: 4px solid #cbd5e1; background: #f8fafc; border-radius: 4px;">
@@ -888,7 +889,7 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
       <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
         <span class="bt-result" style="font-size: 0.75em; font-family: monospace; padding: 2px 8px; border-radius: 9999px; background: #f1f5f9; color: #475569">⏳ pending</span>
         <span class="classification-pill classification-unclassified">unclassified</span>
-        <strong style="font-size: 0.9em;">efficacy_ordering_at_scale</strong>
+        <strong style="font-size: 0.9em;">reproduces_headline_suite</strong>
         
       </div>
       <div style="margin-top: 6px; font-size: 0.95em;"></div>
@@ -897,8 +898,8 @@ effect was real but under-powered rather than absent. Conversion tracked it: PDL
       <details style="margin-top: 6px; font-size: 0.82em;">
         <summary class="muted" style="cursor: pointer;">Assertion</summary>
         
-        <pre style="background:#fff; padding:8px; margin:4px 0 0 0; border:1px solid #e2e8f0; border-radius:3px; overflow-x:auto;">measure: {"kind": "scalar", "of": "per-seed suppression, 25% vs 75% PD1+ (150 cells, 1500 ticks, 3 seeds)"}
-expect:  {"of": "25% PD1+ suppresses more than 75% PD1+ in 3/3 seeds", "op": "greater_than"}</pre>
+        <pre style="background:#fff; padding:8px; margin:4px 0 0 0; border:1px solid #e2e8f0; border-radius:3px; overflow-x:auto;">measure: {"kind": "qualitative", "of": "the 6-figure suite + cross-condition comparison"}
+expect:  {"of": "all figures render with TAG_COLORS / YlOrBr", "op": "renders"}</pre>
       </details>
       
       
@@ -1059,7 +1060,7 @@ expect:  {"of": "25% PD1+ suppresses more than 75% PD1+ in 3/3 seeds", "op": "gr
 <script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "3d7667756b393c956ec5fb1b5b0acd272f157fc2", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/3d7667756b393c956ec5fb1b5b0acd272f157fc2", "branch": "main", "generated_at": "2026-09-09 01:35 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
-window._studyName = "efficacy-at-scale";
+window._studyName = "tumor-microenvironment";
 window._study = null;  // populated by _bootstrapStudy() in study-detail.js
 
 // Save handler for the Conditions → Model settings editable rows.

@@ -152,6 +152,93 @@ def _render_one(address, config, runs_db, study_yaml):
         return _p.read_text(encoding='utf-8', errors='replace')
     return f'<p style="color:#6b7280">unsupported figure type: {address}</p>'
 
+# ## Study: Tumor microenvironment (headline experiment) + full figure suite (`tumor-microenvironment`)
+#
+# **Question.** Does the ported model reproduce tumor-tcell's headline experiment
+# (tumor_microenvironment_experiment, id '5') — a central tumor mass ringed by
+# T cells under the three CODEX conditions — and its full analysis figure suite?
+
+# ### Parameters
+#
+# | simulation | composite | steps | params |
+# | --- | --- | --- | --- |
+# | `baseline` | `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` | 0 | n_tumors=60, n_tcells=12, pd1_positive_frac=0.25 |
+
+# ### Specification (process-bigraph) — load, inspect, edit
+#
+# Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
+
+# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (a plain, editable dict)
+
+# _composite spec file for `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` not found under `viva_tumor_tcell/composites/` — skipped._
+
+# ### Run
+#
+# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+
+# === Study: tumor-microenvironment ===
+STUDY = 'tumor-microenvironment'
+STUDY_DIR = REPO / 'studies' / STUDY
+STUDY_YAML = str(STUDY_DIR / "study.yaml")
+RUNS_DB = str(STUDY_DIR / "runs.db")
+
+print("No recorded runs for this study; nothing to reproduce.")
+
+# ### Visualizations
+#
+# _Results are shown by the figures below, produced by the run above._
+
+# **population_tumor**
+
+def _save_viz(study, slug, html):
+    d = REPO / 'reports/notebooks/figures' / study
+    d.mkdir(parents=True, exist_ok=True)
+    out = d / (slug + '.html')
+    out.write_text(html, encoding='utf-8')
+    print('  wrote', out)
+
+
+# population_tumor
+_save_viz('tumor-microenvironment', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **population_tcell**
+
+# population_tcell
+_save_viz('tumor-microenvironment', 'population_tcell', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **divisions**
+
+# divisions
+_save_viz('tumor-microenvironment', 'divisions', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **deaths**
+
+# deaths
+_save_viz('tumor-microenvironment', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **snapshots**
+
+# snapshots
+_save_viz('tumor-microenvironment', 'snapshots', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **spatial_animation**
+
+# spatial_animation
+_save_viz('tumor-microenvironment', 'spatial_animation', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **tumor_count_by_condition**
+
+# tumor_count_by_condition
+_save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# ### Acceptance criteria
+#
+# _Pre-registered checks (criteria/thresholds only — run the cells above to evaluate them)._
+#
+# | test | measures | passes if |
+# | --- | --- | --- |
+# | reproduces_headline_suite | kind=qualitative of=the 6-figure suite + cross-condition comparison |  |
+
 # ## Study: T-cell exhaustion vs. starting PD1+ fraction (`tcell-exhaustion`)
 #
 # **Question.** Does the exhausted (PD1+) T-cell fraction over time depend on the fraction of T cells
@@ -188,14 +275,6 @@ print("No recorded runs for this study; nothing to reproduce.")
 # _Results are shown by the figures below, produced by the run above._
 
 # **pd1p_fraction**
-
-def _save_viz(study, slug, html):
-    d = REPO / 'reports/notebooks/figures' / study
-    d.mkdir(parents=True, exist_ok=True)
-    out = d / (slug + '.html')
-    out.write_text(html, encoding='utf-8')
-    print('  wrote', out)
-
 
 # pd1p_fraction
 _save_viz('tcell-exhaustion', 'pd1p_fraction', _render_one('', {}, RUNS_DB, STUDY_YAML))
