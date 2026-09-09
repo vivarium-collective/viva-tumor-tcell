@@ -226,6 +226,11 @@ _save_viz('tumor-microenvironment', 'snapshots', _render_one('', {}, RUNS_DB, ST
 # spatial_animation
 _save_viz('tumor-microenvironment', 'spatial_animation', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
+# **spatial_large_scale**
+
+# spatial_large_scale
+_save_viz('tumor-microenvironment', 'spatial_large_scale', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
 # **tumor_count_by_condition**
 
 # tumor_count_by_condition
@@ -404,6 +409,11 @@ _save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('', {}, RUNS_DB, S
 
 # spatial_killing
 _save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('', {}, RUNS_DB, STUDY_YAML))
+
+# **spatial_killing_demo**
+
+# spatial_killing_demo
+_save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
