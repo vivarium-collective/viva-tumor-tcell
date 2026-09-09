@@ -586,14 +586,23 @@ T cells under the three CODEX conditions — and its full analysis figure suite?
 T cells under the three CODEX conditions — and its full analysis figure suite?
 </p>
       
-      <div class="ctr-context">This is the ported analogue of tumor-tcell&#39;s headline run: a central tumor mass with a
-ring of T cells (25% PD1+ in the headline condition), sharing a diffusing IFNg field, with
-cell–cell collisions from viva-munk. The study emits the same figures the original&#39;s
-individual_analysis produces — tumor and T-cell population-by-state timeseries, cumulative
-divisions, cumulative deaths by type, an 8-panel spatial snapshot montage, and a spatial
-animation (the video analogue) — using the paper&#39;s cell-state colors (PDL1n=indianred,
-PDL1p=skyblue, PD1n=darkorange, PD1p=limegreen) over the YlOrBr IFNg field. A cross-condition
-panel compares tumor count across no-T / 25% / 75% PD1+.
+      <div class="ctr-context">This is the ported analogue of the paper&#39;s headline in-silico experiment (Hickey, Agmon et
+al., Cell Systems 2024, Figure 3): a tumor mass with T cells, run under the three conditions
+the paper compares — no T cells, 25% PD1+ (mostly active, memory-like T cells from ex-vivo
+2HC treatment), and 75% PD1+ (mostly exhausted). In the paper this is 1,200 tumor cells + 12
+T cells over 3 days; here it is run at a tractable scale with the same mechanism. The paper&#39;s
+key result: T cells that start more active (25% PD1+) drive the IFNg-mediated conversion of
+proliferative PDL1n tumor cells into the arrested PDL1p state earlier and more strongly than
+75% PD1+ T cells, holding the tumor to ~1,000 cells vs ~3,000 (75% PD1+) vs ~5,000 (no T) at
+60 h — despite a nearly identical number of kills in the two T-cell conditions. So control of
+growth comes from conversion, not raw killing.
+
+The study emits the same figures the original&#39;s individual_analysis produces — tumor and
+T-cell population-by-state timeseries, cumulative divisions, cumulative deaths by type, an
+8-panel spatial snapshot montage, and a spatial animation/GIF (the video analogue) — using
+the paper&#39;s cell-state colors (PDL1n=indianred, PDL1p=skyblue, PD1n=darkorange,
+PD1p=limegreen) over the YlOrBr IFNg field. A cross-condition panel compares tumor count
+across no-T / 25% / 75% PD1+.
 </div>
       
     </div>
@@ -912,7 +921,7 @@ panel compares tumor count across no-T / 25% / 75% PD1+.
               onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
               ></iframe>
       
-      <p class="figure-desc muted">Hand-authored figure (1309 KB) from reports/figures/tumor-microenvironment/.</p>
+      <p class="figure-desc muted">Hand-authored figure (3087 KB) from reports/figures/tumor-microenvironment/.</p>
       
       <div class="figure-caption-row">
         <span class="figure-source-chip">embed</span>
@@ -929,7 +938,7 @@ panel compares tumor count across no-T / 25% / 75% PD1+.
               onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
               ></iframe>
       
-      <p class="figure-desc muted">Hand-authored figure (1364 KB) from reports/figures/tumor-microenvironment/.</p>
+      <p class="figure-desc muted">Hand-authored figure (2660 KB) from reports/figures/tumor-microenvironment/.</p>
       
       <div class="figure-caption-row">
         <span class="figure-source-chip">embed</span>
@@ -1193,7 +1202,7 @@ expect:  {"of": "all figures render with TAG_COLORS / YlOrBr", "op": "renders"}<
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5282f0c604e0d6fa7001b141b6dda0151066d168", "branch": "main", "generated_at": "2026-09-09 01:59 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "c1a03b8a6f052af381a65df39b80ba0eb415757f", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/c1a03b8a6f052af381a65df39b80ba0eb415757f", "branch": "main", "generated_at": "2026-09-09 02:11 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "tumor-microenvironment";

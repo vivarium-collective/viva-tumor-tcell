@@ -586,13 +586,16 @@ tumor growth more than exhausted (75% PD1+) T cells — emerge when the simulati
 up from the tractable 40-cell / 600-tick studies?
 </p>
       
-      <div class="ctr-context">At 150 cells and 1500 ticks (vs. 40/600 in the tractable studies) the paper&#39;s central
-finding appears. Active (25% PD1+) T cells suppressed tumor growth (285 ± 15 tumors vs.
-315 ± 24 no-T) while exhausted (75% PD1+) T cells did not (335 ± 11, indistinguishable
-from / slightly above the no-T control). The suppression ordering — 25% PD1+ better than
-75% PD1+ — held in all 3 seeds, versus only 3/6 at the tractable scale, confirming the
-effect was real but under-powered rather than absent. Conversion tracked it: PDL1p reached
-14–42% with active T cells vs. 5–9% with exhausted and 3–5% with none.
+      <div class="ctr-context">This is the ported analogue of the paper&#39;s Figure 3E result (Hickey, Agmon et al., Cell
+Systems 2024). At paper scale (1,200 tumor + 12 T cells, 3 days) the paper found 25% PD1+
+T cells hold the tumor to ~1,000 cells vs ~3,000 (75% PD1+) vs ~5,000 (no T) at 60 h —
+crucially, driven by the RATE of tumor phenotype conversion, not the kill count (the two
+T-cell conditions produced a nearly identical ~1,300 vs ~1,200 deaths). At 150 cells and
+1500 ticks (vs. 40/600 in the tractable studies) the same ordering appears here: active
+(25% PD1+) T cells suppressed tumor growth (285 ± 15 tumors vs. 315 ± 24 no-T) while
+exhausted (75% PD1+) T cells did not (335 ± 11). The ordering held in all 3 seeds vs. only
+3/6 at the tractable scale — the effect was real but under-powered, not absent. Conversion
+tracked it: PDL1p reached 14–42% with active T cells vs. 5–9% (exhausted) and 3–5% (no T).
 </div>
       
     </div>
@@ -1073,7 +1076,7 @@ expect:  {"of": "25% PD1+ suppresses more than 75% PD1+ in 3/3 seeds", "op": "gr
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5282f0c604e0d6fa7001b141b6dda0151066d168", "branch": "main", "generated_at": "2026-09-09 01:59 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "c1a03b8a6f052af381a65df39b80ba0eb415757f", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/c1a03b8a6f052af381a65df39b80ba0eb415757f", "branch": "main", "generated_at": "2026-09-09 02:11 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "efficacy-at-scale";

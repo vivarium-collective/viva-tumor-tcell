@@ -584,11 +584,16 @@ seeded as exhausted, and is that dependence robust across seeds?
 seeded as exhausted, and is that dependence robust across seeds?
 </p>
       
-      <div class="ctr-context">T cells seeded around a tumor mass were followed for ~10 h across 6 seeds. When 75% of T
-cells started exhausted (PD1+), the exhausted fraction ended near 63% (± 22); when only 25%
-started exhausted it ended near 16% (± 11). The ordering held in all 6 seeds — a robust,
-cell-intrinsic dynamic. (Net tumor-count suppression, by contrast, did not separate from
-growth noise at this scale — see the investigation&#39;s caveats.)
+      <div class="ctr-context">In the paper (Hickey, Agmon et al., Cell Systems 2024, Figure 3H), repeated TCR stimulation
+drives therapeutic T cells from the active PD1- state into the exhausted PD1+ state over the
+course of treatment, which lowers their cytokine (IFNg) secretion and cell division — the
+mechanistic reason the starting phenotype matters. The starting fraction (set ex-vivo: 25%
+PD1+ with 2HC memory-skewing vs 75% PD1+ without) therefore shapes how much conversion and
+killing the T cells can drive. This study isolates that dynamic: T cells seeded around a
+tumor mass were followed for ~10 h across 6 seeds. When 75% of T cells started exhausted, the
+exhausted fraction ended near 63% (± 22); when only 25% started exhausted it ended near 16%
+(± 11) — the ordering held in all 6 seeds, a robust cell-intrinsic dynamic. (Net tumor-count
+suppression, by contrast, needs larger scale — see efficacy-at-scale.)
 </div>
       
     </div>
@@ -839,7 +844,7 @@ growth noise at this scale — see the investigation&#39;s caveats.)
               onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
               ></iframe>
       
-      <p class="figure-desc muted">Hand-authored figure (971 KB) from reports/figures/tcell-exhaustion/.</p>
+      <p class="figure-desc muted">Hand-authored figure (1715 KB) from reports/figures/tcell-exhaustion/.</p>
       
       <div class="figure-caption-row">
         <span class="figure-source-chip">embed</span>
@@ -1086,7 +1091,7 @@ expect:  {"of": "mean pd1p_end(75%) \u003e mean pd1p_end(25%)", "op": "greater_t
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5282f0c604e0d6fa7001b141b6dda0151066d168", "branch": "main", "generated_at": "2026-09-09 01:59 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "c1a03b8a6f052af381a65df39b80ba0eb415757f", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/c1a03b8a6f052af381a65df39b80ba0eb415757f", "branch": "main", "generated_at": "2026-09-09 02:11 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "tcell-exhaustion";

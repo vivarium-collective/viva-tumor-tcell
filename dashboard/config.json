@@ -2,6 +2,6 @@
   "mode": "snapshot",
   "smsApiBase": "",
   "repo": "https://github.com/vivarium-collective/viva-tumor-tcell",
-  "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168",
+  "commit": "c1a03b8a6f052af381a65df39b80ba0eb415757f",
   "generated_from_ref": "main"
 }

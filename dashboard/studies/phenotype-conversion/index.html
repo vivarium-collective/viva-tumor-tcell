@@ -584,11 +584,17 @@ and does the downstream PDL1n-&gt;PDL1p conversion itself hold at this scale?
 and does the downstream PDL1n-&gt;PDL1p conversion itself hold at this scale?
 </p>
       
-      <div class="ctr-context">Across 6 seeds, active T cells built a measurable IFNg field in every run while the no-T
-control stayed at zero — a robust reproduction of the cytokine-secretion step. The IFNg
-field is the driver of tumor phenotype conversion; the downstream PDL1p fraction is
-directionally higher with T cells but does not separate from growth noise over the ~10 h
-window, so conversion is reported honestly as scale-limited.
+      <div class="ctr-context">Tumor phenotype conversion is the paper&#39;s central mechanism (Hickey, Agmon et al., Cell
+Systems 2024): IFNg secreted by engaged CD8+ T cells diffuses through the tissue and drives
+proliferative PDL1n (MHC-I-low) tumor cells into an arrested, inflammatory PDL1p (MHC-I-high)
+state that stops dividing (negative for cell-cycle markers, G0). The paper shows this
+conversion — not the number of kills — is what controls tumor growth, and that more-active
+(25% PD1+) T cells convert tumors earlier (~18 h) and more strongly than exhausted (75% PD1+)
+T cells. This study isolates the cytokine driver: across 6 seeds active T cells built a
+measurable IFNg field in every run while the no-T control stayed at zero — a robust
+reproduction of the secretion step. The downstream PDL1p fraction is directionally higher
+with T cells; at the tractable ~10 h scale it does not fully separate from growth noise (it
+does at larger scale — see efficacy-at-scale), so it is reported honestly here.
 </div>
       
     </div>
@@ -856,7 +862,7 @@ window, so conversion is reported honestly as scale-limited.
               onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
               ></iframe>
       
-      <p class="figure-desc muted">Hand-authored figure (1042 KB) from reports/figures/phenotype-conversion/.</p>
+      <p class="figure-desc muted">Hand-authored figure (1801 KB) from reports/figures/phenotype-conversion/.</p>
       
       <div class="figure-caption-row">
         <span class="figure-source-chip">embed</span>
@@ -1103,7 +1109,7 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5282f0c604e0d6fa7001b141b6dda0151066d168", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5282f0c604e0d6fa7001b141b6dda0151066d168", "branch": "main", "generated_at": "2026-09-09 01:59 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "c1a03b8a6f052af381a65df39b80ba0eb415757f", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/c1a03b8a6f052af381a65df39b80ba0eb415757f", "branch": "main", "generated_at": "2026-09-09 02:11 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "phenotype-conversion";
