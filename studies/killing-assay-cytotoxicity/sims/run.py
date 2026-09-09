@@ -17,7 +17,8 @@ import numpy as np
 
 from viva_tumor_tcell.core import build_core
 from viva_tumor_tcell.composites.microenvironment import killing_assay_document
-from viva_tumor_tcell.run import replicate_series, mean_std, tumor_count
+from viva_tumor_tcell.run import replicate_series, mean_std, tumor_count, analysis_run
+from viva_tumor_tcell.composites.microenvironment import killing_assay_document as _kad
 from viva_tumor_tcell import viz
 from viva_tumor_tcell.studies_lib import SEEDS, record_run
 
@@ -76,6 +77,26 @@ def main() -> int:
         fig2 = viz.spatial_animation_figure(
             frames_exp, BOUNDS, title='Killing assay (+T) — well-mixed cytotoxicity')
         viz.write_html(fig2, viz_dir / 'spatial_killing.html', STUDY_SLUG)
+
+    # --- matching analysis figures (population + deaths by type), mirroring the
+    #     original killing_experiment's death_group_plot / population_group_plot,
+    #     from one representative +T run ---
+    import random
+    from process_bigraph import Composite
+    random.seed(SEEDS[0])
+    a = analysis_run(
+        Composite({'state': _kad(n_tumors=N_TUMORS, include_tcells=True, pdl1_positive_frac=0.5,
+                                 tumor_t_ratio=1.5, pd1_positive_frac=0.25,
+                                 bounds=BOUNDS, n_bins=N_BINS, seed=SEEDS[0])}, core=core),
+        N_STEPS, keep_snapshots=6)
+    ath = a['times_h']
+    viz.write_html(viz.population_group_figure(
+        ath, a['populations'], ['tumor_total', 'tumor_PDL1n', 'tumor_PDL1p'],
+        'Killing assay — tumor population by state (+T)'),
+        viz_dir / 'population_tumor.html', STUDY_SLUG)
+    viz.write_html(viz.deaths_figure(ath, a['deaths'],
+        'Killing assay — cumulative tumor/T-cell deaths by type (+T)'),
+        viz_dir / 'deaths.html', STUDY_SLUG)
 
     (STUDY_DIR / 'results.json').write_text(json.dumps(verdict, indent=2))
     return 0

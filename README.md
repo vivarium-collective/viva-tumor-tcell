@@ -27,6 +27,14 @@ the paper's mechanism and reports every study across **6 replicate seeds** (mean
 scale-limited. Each study has an interactive mean±std time-series and a spatial
 animation.
 
+**Headline experiment + matching figures** (`tumor-microenvironment`): reproduces
+tumor-tcell's `tumor_microenvironment_experiment` (a ring-seeded tumor mass + T
+cells, the 3 CODEX conditions) and emits the original's full analysis figure
+suite — tumor/T-cell population-by-state, cumulative divisions, cumulative deaths
+by type, an 8-panel spatial snapshot montage, and an animation — using the
+paper's exact cell-state colors (PDL1n=indianred, PDL1p=skyblue, PD1n=darkorange,
+PD1p=limegreen) over the YlOrBr IFNg field.
+
 **Robust across seeds (the cell + cytokine mechanism):**
 
 | Study | Result (6 seeds, ~10 h sim) |
