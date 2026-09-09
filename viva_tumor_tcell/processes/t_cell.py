@@ -33,6 +33,12 @@ def _daughter_locations(loc, diameter):
 
 
 class TCellProcess(Process):
+    description = (
+        "T cell behavior: on contact with a tumor it secretes IFNg and delivers "
+        "cytotoxic packets; unengaged it migrates; sustained engagement drives "
+        "PD1n -> PD1p exhaustion (reduced secretion). Ported from "
+        "tumor_tcell/processes/t_cell.py."
+    )
     config_schema = {
         'agents_key': {'_type': 'string', '_default': 'cells'},
         'diameter': {'_type': 'float', '_default': 7.5},           # µm

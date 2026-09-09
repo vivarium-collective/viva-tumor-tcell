@@ -52,6 +52,10 @@ def _time_h(state, step):
 class PopulationTimeseries(Visualization):
     """Total + per-phenotype cell counts vs time (mirrors population_group_plot)."""
 
+    description = (
+        "Total and per-phenotype cell counts over time (tumor PDL1n/PDL1p, T cell "
+        "PD1n/PD1p, dendritic) as an interactive Plotly line chart."
+    )
     config_schema = {
         'title': {'_type': 'string', '_default': 'Cell populations over time'},
     }
@@ -103,6 +107,11 @@ class PhenotypeFractions(Visualization):
     IFNg-driven PDL1n -> PDL1p tumor conversion (and T-cell PD1n -> PD1p
     exhaustion), not raw kill count."""
 
+    description = (
+        "PDL1+ tumor fraction and PD1+ T-cell fraction over time (Plotly) — the "
+        "paper's headline readout, tracking the rate of IFNg-driven phenotype "
+        "conversion rather than raw kill count."
+    )
     config_schema = {
         'title': {'_type': 'string', '_default': 'Phenotype conversion over time'},
     }
@@ -157,6 +166,10 @@ class SpatialLayout(Visualization):
     in µm data-coordinates (correct cell sizes) with every frame drawn, so it
     matches the study spatial figures rather than a pixel-sized scatter."""
 
+    description = (
+        "Animated GIF of cells (true circles in µm) over the IFNg field, colored "
+        "by type/state — the interactive analogue of the paper's videos."
+    )
     config_schema = {
         'title': {'_type': 'string', '_default': 'Spatial layout'},
         'bounds_x': {'_type': 'float', '_default': 400.0},
@@ -231,6 +244,38 @@ class SpatialLayout(Visualization):
 for _cls in (PopulationTimeseries, PhenotypeFractions, SpatialLayout):
     _cls.__pb_kind__ = 'visualization'
     _cls.__pb_aliases__ = [_cls.__name__]
+
+
+# --- workbench loom contracts (per-port meanings) ---
+PopulationTimeseries.contract = {
+    'summary': "Total + per-phenotype cell counts over time, rendered as an interactive Plotly line chart.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); counted by cell_type and cell_state each tick.",
+               'time': "Simulation time (s); the x-axis (converted to hours)."},
+    'outputs': {'html': "Rendered Plotly HTML (line per count series: tumor total/PDL1n/PDL1p, T cell "
+                        "total/PD1n/PD1p, and dendritic when present)."},
+    'assumptions': ["Accumulates one count snapshot per tick; flat-zero series are dropped from the legend."],
+}
+PhenotypeFractions.contract = {
+    'summary': "PDL1+ tumor fraction and PD1+ T-cell fraction over time — the paper's IFNg-driven "
+               "conversion readout.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); the PDL1p tumor fraction and PD1p T-cell "
+                        "fraction are computed each tick.",
+               'time': "Simulation time (s); the x-axis (converted to hours)."},
+    'outputs': {'html': "Rendered Plotly HTML (fraction in 0-1 vs time, one line per fraction)."},
+    'assumptions': ["Fractions are 0 when the denominator population (tumors / T cells) is empty."],
+}
+SpatialLayout.contract = {
+    'summary': "Animated GIF of cells over the IFNg field — true circles in um data-coordinates, colored "
+               "by type/state; the interactive analogue of the paper's videos.",
+    'inputs': {'cells': "All cells (map[tumor_tcell_agent]); reads location (um), radius (um), cell_type, "
+                        "cell_state per tick.",
+               'fields': "2D concentration grids per molecule (ng/mL); the IFNg grid is drawn as the "
+                         "background heatmap.",
+               'time': "Simulation time (s); frame timestamps."},
+    'outputs': {'html': "A standalone HTML page embedding an autoplaying, looping GIF (matplotlib)."},
+    'assumptions': ["Buffers a compact frame per tick; the GIF is rendered once at end-of-run "
+                    "(max_frames subsampling for a smooth, lightweight animation)."],
+}
 
 
 def register_visualizations(core):

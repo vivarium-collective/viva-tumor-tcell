@@ -37,6 +37,12 @@ def _daughter_locations(loc, diameter):
 
 
 class DendriticCellProcess(Process):
+    description = (
+        "Dendritic cell behavior: takes up tumor debris from the field and, once "
+        "enough is internalized, activates and presents MHCI — the "
+        "antigen-presentation arm of the lymph-node extension. Ported from "
+        "tumor_tcell/processes/dendritic_cell.py."
+    )
     config_schema = {
         'agents_key': {'_type': 'string', '_default': 'cells'},
         'diameter': {'_type': 'float', '_default': 10.0},          # µm

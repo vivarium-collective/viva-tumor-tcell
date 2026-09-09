@@ -41,6 +41,12 @@ def _laplacian(f):
 
 
 class DiffusionField(Process):
+    description = (
+        "Soluble-field manager (tumor-tcell Fields + LocalField consolidated): "
+        "deposits each cell's secreted amounts into its field bin, diffuses and "
+        "decays the 2D IFNg / tumor-debris concentration grids (ng/mL), and "
+        "samples each cell's local concentration back onto it."
+    )
     # NB: scalar config only — a `list`-typed config field concatenates the
     # default with the provided value (list apply is additive), so bounds/n_bins
     # are passed as x/y scalars. `molecules` defaults to [] (empty is

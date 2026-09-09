@@ -46,6 +46,11 @@ def _daughter_locations(loc, diameter):
 
 
 class TumorCellProcess(Process):
+    description = (
+        "Tumor cell behavior: proliferation, IFNg-driven PDL1n -> PDL1p phenotype "
+        "conversion, and death by apoptosis or accumulated cytotoxic packets "
+        "(releasing tumor debris). Ported from tumor_tcell/processes/tumor.py."
+    )
     config_schema = {
         'agents_key': {'_type': 'string', '_default': 'cells'},
         'diameter': {'_type': 'float', '_default': 15.0},          # µm

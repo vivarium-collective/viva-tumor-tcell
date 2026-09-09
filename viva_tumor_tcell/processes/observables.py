@@ -15,6 +15,11 @@ from ..run import population_counts, pdl1p_fraction, pd1p_fraction, ifng_max
 
 
 class Observables(Step):
+    description = (
+        "Scalar aggregates for the emitter + study Results/Readouts: per-tick cell "
+        "counts by type/state, PDL1p / PD1p fractions, and peak IFNg, written to an "
+        "observables store for a SQLiteEmitter to persist."
+    )
     config_schema = {}
 
     def inputs(self):

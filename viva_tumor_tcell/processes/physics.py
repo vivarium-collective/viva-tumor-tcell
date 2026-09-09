@@ -21,6 +21,12 @@ from viva_munk.processes.multibody import PymunkProcess
 
 
 class TumorTcellPhysics(Process):
+    description = (
+        "Cell collisions via a real viva-munk pymunk space (walls, jitter, "
+        "substeps) plus persistent-random-walk migration, neighbor detection, and "
+        "membrane / cytotoxic-packet exchange between contacting cells. Replaces "
+        "tumor-tcell's Neighbors process."
+    )
     # scalar config only (see DiffusionField note on list-config concatenation)
     config_schema = {
         'bounds_x': {'_type': 'float', '_default': 200.0},   # µm
