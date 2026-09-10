@@ -25,6 +25,8 @@
     
     <button type="button" id="study-reproduce" class="btn-mini" title="Replay this study's most recent run's RECORDED manifest verbatim (POST /api/study-reproduce) — ignores any study.yaml edits made since">↻ Reproduce</button>
     <button type="button" id="study-run-current-spec" class="btn-mini" title="Run this study's CURRENT baseline spec (POST /api/study-run-baseline) as a brand-new run">▶ Run current spec</button>
+    
+    <button type="button" id="study-run-composite" class="btn-mini" title="Dispatch a specific process-bigraph composite_id to the remote compute backend (pbg-native, item 101/109) — advanced, independent of this study's own pinned baseline">⚙ Dispatch composite</button>
   </span>
   </div>
   <div class="study-status-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px;">
@@ -1168,7 +1170,7 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "d60993a7f68068bf0e02c3f9376474b64b980ba8", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/d60993a7f68068bf0e02c3f9376474b64b980ba8", "branch": "main", "generated_at": "2026-09-10 02:20 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "2c48ab5612eee4beca99439ca2d552b22f0d049d", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/2c48ab5612eee4beca99439ca2d552b22f0d049d", "branch": "main", "generated_at": "2026-09-10 03:18 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "phenotype-conversion";
