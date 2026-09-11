@@ -26,7 +26,7 @@
     <button type="button" id="study-reproduce" class="btn-mini" title="Replay this study's most recent run's RECORDED manifest verbatim (POST /api/study-reproduce) — ignores any study.yaml edits made since">↻ Reproduce</button>
     <button type="button" id="study-run-current-spec" class="btn-mini" title="Run this study's CURRENT baseline spec (POST /api/study-run-baseline) as a brand-new run">▶ Run current spec</button>
     
-    <button type="button" id="study-run-composite" class="btn-mini" title="Dispatch a specific process-bigraph composite_id to the remote compute backend (pbg-native, item 101/109) — advanced, independent of this study's own pinned baseline">⚙ Dispatch composite</button>
+    <button type="button" id="study-run-composite" class="btn-mini" title="Dispatch a specific process-bigraph composite_id to the remote compute backend (pbg-native multi_node/mbp, or the Nextflow campaign path) — advanced, independent of this study's own pinned baseline">⚙ Dispatch composite</button>
   </span>
   </div>
   <div class="study-status-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px;">
@@ -821,7 +821,7 @@ suppression, by contrast, needs larger scale — see efficacy-at-scale.)
       <iframe src="/viva-tumor-tcell/dashboard/studies/tcell-exhaustion/viz/pd1p_fraction.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="pd1p_fraction (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (121 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -838,7 +838,7 @@ suppression, by contrast, needs larger scale — see efficacy-at-scale.)
       <iframe src="/viva-tumor-tcell/dashboard/studies/tcell-exhaustion/viz/spatial_75pct.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_75pct (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (1051 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -855,7 +855,7 @@ suppression, by contrast, needs larger scale — see efficacy-at-scale.)
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tcell-exhaustion/pd1p_fraction.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="pd1p_fraction"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (121 KB) from reports/figures/tcell-exhaustion/.</p>
@@ -872,7 +872,7 @@ suppression, by contrast, needs larger scale — see efficacy-at-scale.)
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tcell-exhaustion/spatial_75pct.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_75pct"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (1051 KB) from reports/figures/tcell-exhaustion/.</p>
@@ -1135,7 +1135,7 @@ expect:  {"of": "mean pd1p_end(75%) \u003e mean pd1p_end(25%)", "op": "greater_t
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "2c48ab5612eee4beca99439ca2d552b22f0d049d", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/2c48ab5612eee4beca99439ca2d552b22f0d049d", "branch": "main", "generated_at": "2026-09-10 03:18 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "2c48ab5612eee4beca99439ca2d552b22f0d049d", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/2c48ab5612eee4beca99439ca2d552b22f0d049d", "branch": "main", "generated_at": "2026-09-11 03:27 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "tcell-exhaustion";

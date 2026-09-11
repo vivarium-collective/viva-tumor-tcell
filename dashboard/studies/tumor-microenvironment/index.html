@@ -26,7 +26,7 @@
     <button type="button" id="study-reproduce" class="btn-mini" title="Replay this study's most recent run's RECORDED manifest verbatim (POST /api/study-reproduce) — ignores any study.yaml edits made since">↻ Reproduce</button>
     <button type="button" id="study-run-current-spec" class="btn-mini" title="Run this study's CURRENT baseline spec (POST /api/study-run-baseline) as a brand-new run">▶ Run current spec</button>
     
-    <button type="button" id="study-run-composite" class="btn-mini" title="Dispatch a specific process-bigraph composite_id to the remote compute backend (pbg-native, item 101/109) — advanced, independent of this study's own pinned baseline">⚙ Dispatch composite</button>
+    <button type="button" id="study-run-composite" class="btn-mini" title="Dispatch a specific process-bigraph composite_id to the remote compute backend (pbg-native multi_node/mbp, or the Nextflow campaign path) — advanced, independent of this study's own pinned baseline">⚙ Dispatch composite</button>
   </span>
   </div>
   <div class="study-status-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px;">
@@ -830,7 +830,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/deaths.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="deaths (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (26 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -847,7 +847,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/divisions.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="divisions (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (27 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -864,7 +864,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/population_tcell.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="population_tcell (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (37 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -881,7 +881,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/population_tumor.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="population_tumor (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (37 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -898,7 +898,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/snapshots.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="snapshots (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (226 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -915,7 +915,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/spatial_animation.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_animation (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (1337 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -932,7 +932,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/spatial_large_scale.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_large_scale (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (1338 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -949,7 +949,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/studies/tumor-microenvironment/viz/tumor_count_by_condition.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="tumor_count_by_condition (auto)"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Auto-discovered Plotly viz (38 KB) rendered by render_visualizations against the study&#39;s runs.db history.</p>
@@ -966,7 +966,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/deaths.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="deaths"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (26 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -983,7 +983,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/divisions.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="divisions"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (27 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1000,7 +1000,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/population_tcell.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="population_tcell"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (37 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1017,7 +1017,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/population_tumor.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="population_tumor"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (37 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1034,7 +1034,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/snapshots.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="snapshots"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (226 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1051,7 +1051,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/spatial_animation.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_animation"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (1337 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1068,7 +1068,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/spatial_large_scale.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="spatial_large_scale"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (1338 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1085,7 +1085,7 @@ across no-T / 25% / 75% PD1+.
       <iframe src="/viva-tumor-tcell/dashboard/reports/figures/tumor-microenvironment/tumor_count_by_condition.html"
               class="figure-media-frame figure-media-frame--embed"
               loading="lazy" title="tumor_count_by_condition"
-              onload="(function(f){try{var d=f.contentDocument;if(!d)return;var b=d.body,e=d.documentElement;var bStyle=b&&d.defaultView&&d.defaultView.getComputedStyle?d.defaultView.getComputedStyle(b):null;var pinnedH=0;if(bStyle&&(bStyle.overflow||'').indexOf('hidden')>=0){var hm=(bStyle.height||'').match(/^(\d+(?:\.\d+)?)px$/);if(hm)pinnedH=Math.round(parseFloat(hm[1]));}var h=pinnedH>0?pinnedH:Math.max(e?e.scrollHeight:0,b?b.scrollHeight:0);if(h>0)f.style.height=(h+24)+'px';}catch(e){}})(this)"
+              onload="window.__fitFigureFrame&&window.__fitFigureFrame(this)"
               ></iframe>
       
       <p class="figure-desc muted">Hand-authored figure (38 KB) from reports/figures/tumor-microenvironment/.</p>
@@ -1348,7 +1348,7 @@ expect:  {"of": "all figures render with TAG_COLORS / YlOrBr", "op": "renders"}<
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "2c48ab5612eee4beca99439ca2d552b22f0d049d", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/2c48ab5612eee4beca99439ca2d552b22f0d049d", "branch": "main", "generated_at": "2026-09-10 03:18 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "2c48ab5612eee4beca99439ca2d552b22f0d049d", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/2c48ab5612eee4beca99439ca2d552b22f0d049d", "branch": "main", "generated_at": "2026-09-11 03:27 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "tumor-microenvironment";
