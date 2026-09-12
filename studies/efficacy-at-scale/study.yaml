@@ -80,7 +80,7 @@ canonical_runs:
     script: studies/efficacy-at-scale/sims/run.py
 
 visualizations:
-  - {name: tumor_count_at_scale, path: viz/tumor_count_at_scale.html}
+  - {name: tumor_count_at_scale, address: html:viz/tumor_count_at_scale.html}
 
 baseline:
   - name: baseline

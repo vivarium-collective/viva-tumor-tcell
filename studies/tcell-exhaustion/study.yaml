@@ -73,8 +73,8 @@ canonical_runs:
     script: studies/tcell-exhaustion/sims/run.py
 
 visualizations:
-  - {name: pd1p_fraction, path: viz/pd1p_fraction.html}
-  - {name: spatial_75pct, path: viz/spatial_75pct.html}
+  - {name: pd1p_fraction, address: html:viz/pd1p_fraction.html}
+  - {name: spatial_75pct, address: html:viz/spatial_75pct.html}
 
 baseline:
   - name: baseline

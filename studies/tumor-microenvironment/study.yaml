@@ -86,14 +86,14 @@ canonical_runs:
     script: studies/tumor-microenvironment/sims/run.py
 
 visualizations:
-  - {name: population_tumor, path: viz/population_tumor.html}
-  - {name: population_tcell, path: viz/population_tcell.html}
-  - {name: divisions, path: viz/divisions.html}
-  - {name: deaths, path: viz/deaths.html}
-  - {name: snapshots, path: viz/snapshots.html}
-  - {name: spatial_animation, path: viz/spatial_animation.html}
-  - {name: spatial_large_scale, path: viz/spatial_large_scale.html}
-  - {name: tumor_count_by_condition, path: viz/tumor_count_by_condition.html}
+  - {name: population_tumor, address: html:viz/population_tumor.html}
+  - {name: population_tcell, address: html:viz/population_tcell.html}
+  - {name: divisions, address: html:viz/divisions.html}
+  - {name: deaths, address: html:viz/deaths.html}
+  - {name: snapshots, address: html:viz/snapshots.html}
+  - {name: spatial_animation, address: html:viz/spatial_animation.html}
+  - {name: spatial_large_scale, address: html:viz/spatial_large_scale.html}
+  - {name: tumor_count_by_condition, address: html:viz/tumor_count_by_condition.html}
 
 baseline:
   - name: baseline

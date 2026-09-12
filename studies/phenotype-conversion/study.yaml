@@ -75,9 +75,9 @@ canonical_runs:
     script: studies/phenotype-conversion/sims/run.py
 
 visualizations:
-  - {name: ifng_field, path: viz/ifng_field.html}
-  - {name: pdl1p_fraction, path: viz/pdl1p_fraction.html}
-  - {name: spatial_conversion, path: viz/spatial_conversion.html}
+  - {name: ifng_field, address: html:viz/ifng_field.html}
+  - {name: pdl1p_fraction, address: html:viz/pdl1p_fraction.html}
+  - {name: spatial_conversion, address: html:viz/spatial_conversion.html}
 
 baseline:
   - name: baseline
