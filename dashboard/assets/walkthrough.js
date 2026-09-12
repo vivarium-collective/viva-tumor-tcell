@@ -932,7 +932,7 @@
   function _loadInputs() {
     var el = document.getElementById('inputs-api-render');
     if (!el) return;
-    el.innerHTML = '<p class="muted" style="font-style:italic">Loading inputs…</p>';
+    el.innerHTML = '<p class="muted" style="font-style:italic">Loading…</p>';
     // Prefer the Sources-page picker selection over the git-branch-current slug.
     var _slug = window._inputsSelectedSlug || window._currentIsetSlug || '';
     var _pInputs = window.DataSource
@@ -944,8 +944,9 @@
     // Also load the investigation list so the panel can offer a picker when no
     // investigation is branch-current — the user chooses which investigation to
     // load sources INTO (its own sources, not the repo-wide shared sources).
-    var _pList = fetch(_api('/api/investigation-summaries'))
-      .then(function(r) { return r.json(); })
+    var _pList = (window.DataSource
+      ? window.DataSource.loadIsetList()
+      : fetch('/api/investigation-summaries').then(function(r) { return r.json(); }))
       .then(function(d) { return (d && d.investigations) || []; })
       .catch(function() { return []; });
     Promise.all([_pInputs, _pList])
@@ -3859,24 +3860,37 @@
     var _sortKey = window._registrySort || 'use';
     var primary = inWs.concat(framework).sort(function(a, b) { return _registryGridCmp(a, b, _sortKey); });
     envOnly.sort(function(a, b) { return _registryGridCmp(a, b, _sortKey); });
+    var _hasEnv = envOnly.length > 0;
     if (primary.length) {
+      // Only label the workspace group when there's also an environment group to
+      // separate it from — a single group needs no header.
+      if (_hasEnv) {
+        html += '<div class="reg-section-header" style="margin:2px 0 8px;font-size:0.82em;' +
+          'font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#475569">' +
+          'Declared in this workspace <span style="color:#9ca3af;font-weight:600">' + primary.length + '</span></div>';
+      }
       html += '<div class="' + cardsCls + '">' + primary.map(_renderRegistryEntry).join('') + '</div>';
     } else {
       html += '<p class="empty-state muted" style="font-size:0.9em">No workspace-declared entries of this kind.</p>';
     }
 
-    // Environment-only entries: collapsible section, dimmed.
-    if (envOnly.length) {
+    // Environment entries: a clearly-labeled, always-visible section rendered at
+    // FULL opacity and equally interactive. (Previously dimmed via opacity:0.6
+    // AND collapsed behind a <details>, which hid e.g. EcoliWCM and made imported
+    // processes second-class.) Kept visually separated from the workspace-declared
+    // entries by a header + a top rule — not by fading them out.
+    if (_hasEnv) {
       html +=
-        '<details class="registry-env-section" style="margin-top:12px">' +
-        '<summary style="cursor:pointer;color:#6b7280;font-size:0.9em;padding:4px 0">' +
-        'Also available in environment (' + envOnly.length + ') — not declared in workspace.yaml' +
-        '</summary>' +
-        '<div class="' + cardsCls + '" style="opacity:0.6;margin-top:6px">' +
-        envOnly.map(_renderRegistryEntry).join('') +
-        '</div>' +
-        '<p style="font-size:0.8em;color:#9ca3af;margin:4px 0 0">Run <code>/pbg-install &lt;pkg&gt;</code> to add a package to this workspace\'s imports.</p>' +
-        '</details>';
+        '<div class="registry-env-section" style="margin-top:18px;padding-top:12px;' +
+        'border-top:1px solid var(--border,#e5e7eb)">' +
+        '<div class="reg-section-header" style="margin:0 0 8px;font-size:0.82em;font-weight:700;' +
+        'text-transform:uppercase;letter-spacing:0.04em;color:#475569">' +
+        'Available in environment <span style="color:#9ca3af;font-weight:600">' + envOnly.length + '</span>' +
+        '<span style="font-weight:500;text-transform:none;letter-spacing:0;color:#9ca3af;font-size:0.92em">' +
+        ' — installed but not declared in this workspace’s <code>imports:</code></span></div>' +
+        '<div class="' + cardsCls + '">' + envOnly.map(_renderRegistryEntry).join('') + '</div>' +
+        '<p style="font-size:0.8em;color:#9ca3af;margin:8px 0 0">Run <code>/pbg-install &lt;pkg&gt;</code> to add a package to this workspace\'s imports.</p>' +
+        '</div>';
     }
 
     el.innerHTML = html;
@@ -8693,10 +8707,7 @@
     });
     var createBtn = document.getElementById('iset-browse-create');
     if (createBtn) createBtn.textContent = (tab === 'studies') ? '+ Study' : '+ Investigation';
-    // The zoom toolbar (#iset-zoom-toolbar) is always visible on both tabs —
-    // only the "click a card's studies count" tip is Studies-only.
-    var tip = document.getElementById('iset-list-tip');
-    if (tip) tip.style.display = (tab === 'studies') ? 'none' : '';
+    // The zoom toolbar (#iset-zoom-toolbar) is always visible on both tabs.
     var invCount = document.getElementById('iset-tab-inv-count');
     var studyCount = document.getElementById('iset-tab-study-count');
     if (invCount) invCount.textContent = (window._isetIndex || []).length || '';
@@ -8941,8 +8952,15 @@
       ' <button class="btn-mini" onclick="_rerunInvestigation()" ' +
         'title="Re-run every member study\'s CURRENT baseline spec (re-derives from each study\'s study.yaml)">▶ Run current spec</button>');
     if (name) {
-      fetch(_api('/api/investigation-summaries'), {headers: {Accept: 'application/json'}})
-        .then(function (r) { return r.json(); })
+      // Snapshot-aware: DataSource.loadIsetList() maps to the baked
+      // /api/investigation-summaries.json in a published bundle. The `_api()`
+      // adapter only prefixes the base path (never appends `.json`), so it 404s
+      // in a snapshot — leaving the ↓ figures button greyed even when figures.zip
+      // is baked. DataSource is always present in a published bundle.
+      (window.DataSource
+        ? window.DataSource.loadIsetList()
+        : fetch('/api/investigation-summaries', {headers: {Accept: 'application/json'}})
+            .then(function (r) { return r.json(); }))
         .then(function (j) {
           var me = ((j && j.investigations) || []).filter(function (i) { return i.name === name; })[0];
           var host = document.getElementById('ws-actions-figures');
