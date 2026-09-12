@@ -199,42 +199,42 @@ def _save_viz(study, slug, html):
 
 
 # population_tumor
-_save_viz('tumor-microenvironment', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'population_tumor', _render_one('html:viz/population_tumor.html', {}, RUNS_DB, STUDY_YAML))
 
 # **population_tcell**
 
 # population_tcell
-_save_viz('tumor-microenvironment', 'population_tcell', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'population_tcell', _render_one('html:viz/population_tcell.html', {}, RUNS_DB, STUDY_YAML))
 
 # **divisions**
 
 # divisions
-_save_viz('tumor-microenvironment', 'divisions', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'divisions', _render_one('html:viz/divisions.html', {}, RUNS_DB, STUDY_YAML))
 
 # **deaths**
 
 # deaths
-_save_viz('tumor-microenvironment', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'deaths', _render_one('html:viz/deaths.html', {}, RUNS_DB, STUDY_YAML))
 
 # **snapshots**
 
 # snapshots
-_save_viz('tumor-microenvironment', 'snapshots', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'snapshots', _render_one('html:viz/snapshots.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_animation**
 
 # spatial_animation
-_save_viz('tumor-microenvironment', 'spatial_animation', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'spatial_animation', _render_one('html:viz/spatial_animation.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_large_scale**
 
 # spatial_large_scale
-_save_viz('tumor-microenvironment', 'spatial_large_scale', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'spatial_large_scale', _render_one('html:viz/spatial_large_scale.html', {}, RUNS_DB, STUDY_YAML))
 
 # **tumor_count_by_condition**
 
 # tumor_count_by_condition
-_save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('html:viz/tumor_count_by_condition.html', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -282,12 +282,12 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **pd1p_fraction**
 
 # pd1p_fraction
-_save_viz('tcell-exhaustion', 'pd1p_fraction', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tcell-exhaustion', 'pd1p_fraction', _render_one('html:viz/pd1p_fraction.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_75pct**
 
 # spatial_75pct
-_save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('html:viz/spatial_75pct.html', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -335,17 +335,17 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **ifng_field**
 
 # ifng_field
-_save_viz('phenotype-conversion', 'ifng_field', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'ifng_field', _render_one('html:viz/ifng_field.html', {}, RUNS_DB, STUDY_YAML))
 
 # **pdl1p_fraction**
 
 # pdl1p_fraction
-_save_viz('phenotype-conversion', 'pdl1p_fraction', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'pdl1p_fraction', _render_one('html:viz/pdl1p_fraction.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_conversion**
 
 # spatial_conversion
-_save_viz('phenotype-conversion', 'spatial_conversion', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'spatial_conversion', _render_one('html:viz/spatial_conversion.html', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -393,27 +393,27 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **tumor_count_vs_control**
 
 # tumor_count_vs_control
-_save_viz('killing-assay-cytotoxicity', 'tumor_count_vs_control', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'tumor_count_vs_control', _render_one('html:viz/tumor_count_vs_control.html', {}, RUNS_DB, STUDY_YAML))
 
 # **population_tumor**
 
 # population_tumor
-_save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('html:viz/population_tumor.html', {}, RUNS_DB, STUDY_YAML))
 
 # **deaths**
 
 # deaths
-_save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('html:viz/deaths.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_killing**
 
 # spatial_killing
-_save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('html:viz/spatial_killing.html', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_killing_demo**
 
 # spatial_killing_demo
-_save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('html:viz/spatial_killing_demo.html', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -462,7 +462,7 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **tumor_count_at_scale**
 
 # tumor_count_at_scale
-_save_viz('efficacy-at-scale', 'tumor_count_at_scale', _render_one('', {}, RUNS_DB, STUDY_YAML))
+_save_viz('efficacy-at-scale', 'tumor_count_at_scale', _render_one('html:viz/tumor_count_at_scale.html', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
