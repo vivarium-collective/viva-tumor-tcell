@@ -81,8 +81,8 @@ def test_persist_run_writes_readable_scalar_store(tmp_path):
     """persist_run writes a runs.db with a per-step scalar observables history
     (replace semantics, not accumulating) — the store the Results tab previews."""
     import pytest
-    load_history = pytest.importorskip('pbg_emitters.sqlite_emitter').load_history
-    from pbg_emitters.sqlite_emitter import list_simulations
+    load_history = pytest.importorskip('viva_emitters.sqlite_emitter').load_history
+    from viva_emitters.sqlite_emitter import list_simulations
     from viva_tumor_tcell.studies_lib import persist_run
     from viva_tumor_tcell.composites.microenvironment import tumor_microenvironment_document
     core = build_core()
