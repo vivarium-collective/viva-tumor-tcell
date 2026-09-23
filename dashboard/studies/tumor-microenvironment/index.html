@@ -640,6 +640,18 @@ across no-T / 25% / 75% PD1+.
   </div>
 
   
+  <div class="overview-section" id="study-analyses-section">
+    <h3>Analyses to run <span class="muted" style="font-size:0.85em;font-weight:normal">— which of the workspace's <code>ANALYSIS_REGISTRY</code> entries to compute on dispatch</span></h3>
+    <div id="study-analyses-list" data-study="tumor-microenvironment">
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading analyses…</span></div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="action-btn" type="button" onclick="_saveStudyAnalyses()">Save analyses</button>
+      <span id="study-analyses-status" style="margin-left:8px;font-size:0.9em;color:#555"></span>
+    </div>
+  </div>
+
+  
   
   
 
@@ -664,9 +676,13 @@ across no-T / 25% / 75% PD1+.
       </div>
       
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-        <input type="text" class="baseline-composite-input" data-baseline-name="baseline"
-               value="viva_tumor_tcell.composites.microenvironment.tumor_microenvironment" placeholder="pkg.composites.name"
-               style="flex:1;min-width:200px;font-family:monospace;font-size:0.82em;padding:3px 6px" />
+        
+        <select class="baseline-composite-input" data-baseline-name="baseline"
+                data-current="viva_tumor_tcell.composites.microenvironment.tumor_microenvironment"
+                style="flex:1;min-width:200px;font-family:monospace;font-size:0.82em;padding:3px 6px">
+          <option value="viva_tumor_tcell.composites.microenvironment.tumor_microenvironment" selected>viva_tumor_tcell.composites.microenvironment.tumor_microenvironment</option>
+          
+        </select>
         <button type="button" class="action-btn baseline-composite-set" style="font-size:0.8em"
                 data-baseline-name="baseline">Set composite</button>
       </div>
@@ -1348,7 +1364,7 @@ expect:  {"of": "all figures render with TAG_COLORS / YlOrBr", "op": "renders"}<
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "f19bd8414f664e6b27304100435c89276fec233b", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/f19bd8414f664e6b27304100435c89276fec233b", "branch": "main", "generated_at": "2026-09-12 16:18 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "12ae779d31202846d979a21d68853ca9e3fe692b", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/12ae779d31202846d979a21d68853ca9e3fe692b", "branch": "main", "generated_at": "2026-09-23 17:44 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "tumor-microenvironment";
@@ -1377,10 +1393,10 @@ function _saveExpertInput(studyName, eiName, btn) {
   flash.className = 'cond-ei-flash';
   flash.style.display = '';
   flash.textContent = 'saving…';
-  fetch('/api/study-expert-input-set', {
-    method: 'POST',
+  fetch('/api/study/' + encodeURIComponent(studyName), {
+    method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({study: studyName, name: eiName, current: val}),
+    body: JSON.stringify({expert_input: {name: eiName, current: val}}),
   }).then(function(r) {
     return r.text().then(function(t) { return {ok: r.ok, status: r.status, body: t}; });
   }).then(function(res) {
@@ -1475,6 +1491,7 @@ window._seedFollowupProposal = _seedFollowupProposal;
      Model card stays stuck on "Resolving composite…". -->
 <script src="/viva-tumor-tcell/dashboard/assets/loom-embed.js"></script>
 <script src="/viva-tumor-tcell/dashboard/assets/composite-card.js"></script>
+<script src="/viva-tumor-tcell/dashboard/assets/checklist-select.js"></script>
 <script src="/viva-tumor-tcell/dashboard/assets/study-detail.js"></script>
 <script>
 // Re-assert the refresh-aware seed handlers AFTER study-detail.js (which

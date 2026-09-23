@@ -1,6 +1,14 @@
 // walkthrough.js — v0.8.0: Registry Full view is now directly runnable — the config bar IS the editable config and the left ports ARE the editable input fields (no "Run this process" dropdown); Run lives in the body, outputs on the right. Middle (grid) zoom shows ports+types inline (no dropdown); double-click a card → runnable Full. Modules table split into Installed-here vs Marketplace sections with a Repos (imported-into) column, GitHub link on the name, and Install/Uninstall in one Action column (n_repos from module_stats federation scan). bigraph-loom: Explore (graph) is the default left tab; the right dock defaults to Processes with Nodes/Inspector collapsed. v0.7.0: Composites semantic zoom (Table/Cards full-row compact/Loom on-demand embed) + double-click to zoom in; /api/composites now runs in the WARM pooled worker (flake fix). v0.6.9: registry filter now data-driven (works in Table/Cards/Full); middle Cards zoom is full-row with composite/study usage split + details; double-click zooms in centered; select persists across zoom; run panel input ports as per-field form (type + resolved default, auto-grow) + Copy outputs; loom config bar lightened to match workbench palette. v0.6.8: run panel lazy-loads RESOLVED defaults (core.fill via /api/registry/process-template) into a per-field config form + inputs JSON (no more null-heavy templates); loom card restyled as a crisp rectangle. v0.6.7: Registry Full-view interactive runner — editable config + input-port JSON, Run → outputs (POST /api/registry/run-process; env_worker._run_process instantiates + Step.update / Process.update(interval)); loom inputs left / outputs right. v0.6.6: Registry semantic zoom (compact/detailed/full loom-rectangle: inputs left, outputs right, config top) + Cards⇄Table sortable view (_setRegistryZoom/_setRegistryView/_renderRegistryTable); rail pins hover-only + ungrouped back to a collapsible folder. v0.6.5: Registry processes sorted by USE (most-referenced across composites/runners first) with a use-count badge (build_registry._annotate_use_counts source-scan). v0.6.4: Registry page — "Discovered registry"→"Registry" (main tab), "Modules"→"Marketplace"; rich registry entries (description + inputs/outputs ports/contract + full config schema, loom-like) and a new Report Cards tab (_renderRegistryEntry/_regPortColumn). v0.6.3: STUDIES rail — per-study pin toggle (localStorage) with a "Pinned" strip at the top for quick access, and ungrouped studies rendered as a flat list at the bottom instead of a collapsible dropdown (_toggleStudyPin/_loadPinnedStudies; _railStudyItem + _renderRailInvestigationGroups). v0.6.2: Marketplace merged into the Modules tab — Modules grid loads the FULL ecosystem via /api/marketplace (available modules under the "Available to install" divider), installed cards gain an Uninstall action gated by an impact-confirmation modal (_showUninstallImpactModal via /api/catalog-uninstall-impact), viva-* display names + stat chips. v0.6.1: Marketplace sub-tab — browse the FULL viva ecosystem (unfiltered by registry.include) + install (_loadMarketplace/_renderMarketplace via /api/marketplace; shared _renderModuleGrid/_moduleActionFor with the Modules tab). v0.6.0: system-deps awareness — pre-install check + consent modal (_installFromCatalog → _showSystemDepsModal; new _checkSystemDepsForInstalled on Registry rows); v0.5.3: investigation detail panel — Spec/Runs/Visualizations tabs + Run button + Delete; v0.5.2: composite explorer UX fixes (no focus-mode hijack, one-row-per-param layout, lazy-load composite cache); v0.5.1: composite explorer page (bigraph-viz + test run + promote to simulation); v0.4.14: Available Composites picker + Emitter Use feedback + drop process multi-select; v0.4.5: _renderInstallError structured diagnosis; v0.4.1: _loadCatalog + _installFromCatalog; v0.4.0b: active-branch workstream strip; v0.3.7-A: _installImport; v0.3.6: Registry tab; v0.1.9: drag-drop uploads; v0.1.7: interactive forms.
 (function () {
   "use strict";
+  // Cache-bust token for the bigraph-loom iframe, captured once per page load.
+  // The loom bundle is served no-store, but a React re-render reuses the same
+  // <iframe> element without re-navigating, so a freshly-built loom looked stale
+  // until an Empty-Cache-and-Hard-Reload. Appending &v=<load token> to every loom
+  // iframe src makes each full page reload re-navigate the iframe (→ fresh
+  // bundle), while staying stable within a session so we don't reload it on every
+  // SPA update.
+  var _LOOM_V = Date.now();
 
   // Prefix a root-absolute /api path with the dashboard base path (e.g. /workbench)
   // so composite-explore run/resolve/status calls reach the workbench under the
@@ -8,6 +16,23 @@
   // safely with the global _base_path_shim (which skips already-prefixed URLs).
   function _api(p) {
     return (window.DataSource && window.DataSource.apiUrl) ? window.DataSource.apiUrl(p) : p;
+  }
+
+  // Single client for all workbench /api calls. Applies the base-path shim via
+  // _api(path) (composes safely with the global _base_path_shim) and the JSON
+  // request shape, and returns the raw fetch Response so call sites keep their
+  // own `.then(function (r) { ... })` handling — a drop-in for the uniform
+  // `fetch(url, { method, headers: {'Content-Type': 'application/json'},
+  // body: JSON.stringify(x) })` pattern this file used ~77 times. Pass `body`
+  // to send it as JSON; omit it for GET / no-body requests. FormData / raw-body
+  // uploads stay on plain fetch (they don't fit the JSON shape).
+  function apiFetch(method, path, body) {
+    var opts = { method: method };
+    if (body !== undefined && body !== null) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(_api(path), opts);
   }
 
   // Module-level so EVERY render function can call it. It was previously only
@@ -209,6 +234,13 @@
       window._ceLastRunId = ev.data.simulation_id || null;
       var bar = document.getElementById('ce-post-run-bar');
       if (bar) bar.style.display = 'flex';
+      // A just-completed run should appear in the Runs tab right away — without a
+      // manual reload or waiting the ~100s remote fetch. Re-pull the sim index: the
+      // Phase-1 local fetch picks up the new .pbg/composite-runs.db row fast
+      // (including a Cloud run's save_metadata row). The backed-off remote fetch
+      // (_maybeLoadRemoteSims) is not re-triggered, so this stays cheap.
+      if (typeof window._initSimulations === 'function') window._initSimulations(true);
+      if (typeof window._loadStudySims === 'function') window._loadStudySims(true);
     }
   });
 
@@ -573,7 +605,7 @@
   // UI feature flags (ui.composite_view, ui.auto_results)
   // -------------------------------------------------------------------------
   window._uiConfig = null;
-  fetch('/api/ui-config').then(function(r) { return r.json(); }).then(function(cfg) {
+  apiFetch('GET', '/api/ui-config').then(function(r) { return r.json(); }).then(function(cfg) {
     window._uiConfig = cfg || {};
     // Read-only / remote-only mode: hide authoring controls (.js-authoring) via
     // CSS; the Source panel reads this flag at render time to go remote-only.
@@ -614,11 +646,7 @@
   // This is a mirror, not the source of truth — workspace.yaml stays that.
   function _setAutoResults(checked) {
     var cb = document.getElementById('ui-auto-results-cb');
-    fetch(_api('/api/ui-config'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ auto_results: !!checked }),
-    }).then(function(r) {
+    apiFetch('POST', '/api/ui-config', { auto_results: !!checked }).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function() {
@@ -657,11 +685,7 @@
 
     var data = dataFn ? dataFn(form) : _formToObj(form);
 
-    fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
+    apiFetch('POST', endpoint, data)
       .then(function (res) {
         return res.json().then(function (json) {
           return { ok: res.ok, status: res.status, json: json };
@@ -683,7 +707,7 @@
         if (next) msg += "\n\nNext terminal step:\n  " + next;
         if (note) msg += "\n\n" + note;
         // Re-render then reload (strip updates on reload).
-        fetch("/api/render", { method: "POST" }).finally(function () {
+        apiFetch('POST', "/api/render").finally(function () {
           alert(msg);
           location.reload();
         });
@@ -710,11 +734,7 @@
   }
 
   function _postPhaseAction(endpoint, data) {
-    fetch("/api/" + endpoint, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data),
-    })
+    apiFetch('POST', "/api/" + endpoint, data)
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], json = parts[1];
@@ -723,7 +743,7 @@
           return;
         }
         var msg = "Done! Branch: " + (json.branch || "?");
-        fetch("/api/render", {method: "POST"}).finally(function() {
+        apiFetch('POST', "/api/render").finally(function() {
           _refreshGitStatus();
           alert(msg);
           location.reload();
@@ -946,7 +966,7 @@
     // load sources INTO (its own sources, not the repo-wide shared sources).
     var _pList = (window.DataSource
       ? window.DataSource.loadIsetList()
-      : fetch('/api/investigation-summaries').then(function(r) { return r.json(); }))
+      : apiFetch('GET', '/api/investigation-summaries').then(function(r) { return r.json(); }))
       .then(function(d) { return (d && d.investigations) || []; })
       .catch(function() { return []; });
     Promise.all([_pInputs, _pList])
@@ -1157,11 +1177,7 @@
     body = body || {};
     var slug = window._inputsSelectedSlug || window._currentIsetSlug || '';
     if (slug) body.investigation = slug;
-    fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
+    apiFetch('POST', endpoint, body)
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (!res.ok || (res.d && res.d.error)) {
@@ -1365,9 +1381,12 @@
     // workspaces without a provider see no extra UI. Rendered FIRST (above the
     // shared datasets/references) as the primary repo-wide source.
     html += '<div id="data-sources-host" style="display:none;margin-bottom:16px"></div>';
-    html += '<h4 style="margin:12px 0 4px">Datasets</h4>' +
+    // Scope the sub-headers so they stay unambiguous when the panel's own
+    // "Repo-wide data sources" heading scrolls off — otherwise a bare "Datasets"
+    // here reads as a twin of the investigation's "Datasets" table above.
+    html += '<h4 style="margin:12px 0 4px">Repo-wide datasets</h4>' +
       _inputsDatasetsHtml(glob.datasets);
-    html += '<h4 style="margin:12px 0 4px">References</h4>' +
+    html += '<h4 style="margin:12px 0 4px">Repo-wide references</h4>' +
       _inputsRefsHtml(glob.references);
     html += '</div>';
 
@@ -1394,7 +1413,7 @@
     if (!host) return;
     var _p = window.DataSource
       ? window.DataSource.loadDataSources()
-      : fetch('/api/data-sources').then(function(r) { return r.json(); });
+      : apiFetch('GET', '/api/data-sources').then(function(r) { return r.json(); });
     _p
       .then(function(j) {
         var sources = (j && j.sources) || [];
@@ -2255,6 +2274,15 @@
               : 'Temporal — a Process that advances state over a timestep') +
       '">' + (isStep ? 'Step' : 'Temporal') + '</span>';
   }
+  // Marks a vivarium-BRIDGE process: a vivarium-core Step injected into the
+  // whole-cell engine via the topology bridge (not a pbg-native process). Shown
+  // alongside the kind badge so it's clear it runs inside the WCM engine.
+  function _procBridgeBadge(p) {
+    if (!p || !p.bridge) return '';
+    return '<span class="proc-kind-badge proc-kind-other" ' +
+      'title="Bridge — a vivarium-core process injected into the whole-cell engine ' +
+      'via the topology bridge (not pbg-native; runs inside the WCM)">bridge</span>';
+  }
 
   // Config-schema + ports body, revealed by a per-card "config & ports" dropdown
   // in the grid view — keeps the grid dense but the contract one click away.
@@ -2442,7 +2470,7 @@
         ' title="Double-click to zoom in on this ' + (p.kind || 'process') + '">' +
       '<div class="reg-card-row">' +
         '<div class="reg-card-main">' +
-          '<div class="reg-card-head"><strong class="reg-card-name">' + esc(p.name) + '</strong>' + _procKindBadge(p.kind) + defaultBadge + _regUseBadge(p) + '</div>' +
+          '<div class="reg-card-head"><strong class="reg-card-name">' + esc(p.name) + '</strong>' + _procKindBadge(p.kind) + _procBridgeBadge(p) + defaultBadge + _regUseBadge(p) + '</div>' +
           '<code class="reg-card-addr">' + addr + '</code>' +
           (short ? '<p class="reg-card-desc">' + esc(short) + '</p>' : '') +
         '</div>' +
@@ -2525,9 +2553,9 @@
       ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
     // chrome=off → a view-only share: just the bigraph graph + toolbar, no tab
     // strip / left Config panel / bottom run bar (matches the loom Share button).
-    var rel = document.body.classList.contains('snapshot')
+    var rel = (document.body.classList.contains('snapshot')
       ? apiUrl('/bigraph-loom/index.html') + '?static=1&chrome=off&stateUrl=' + encodeURIComponent(_compositeStateUrl(id))
-      : apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) + '&chrome=off';
+      : apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) + '&chrome=off') + '&v=' + _LOOM_V;
     var url;
     try { url = new URL(rel, window.location.href).href; } catch (e) { url = rel; }
     var flash = function () {
@@ -2619,10 +2647,10 @@
           _bi.onclick = function (ev) { ev.stopPropagation(); _popCardBackIn(address, kind); };
           _hdr.appendChild(_bi);
         }
-        // For composites, auto-open Explore so the loom is visible immediately
-        // (via the header Explore button so its label stays in sync).
+        // For composites (popped-out single card), auto-open the loom so it's
+        // visible immediately — via the single graph bar that toggles it.
         if (isComposite) {
-          var expBtn = host.querySelector('.pcard-explore-btn');
+          var expBtn = host.querySelector('.pcard-graph-bar');
           if (expBtn && typeof _toggleLoomCard === 'function') _toggleLoomCard(expBtn);
         }
         return;
@@ -2836,7 +2864,7 @@
     card._pollRun = runId;   // guard: a newer run supersedes this poll
     var tick = function () {
       if (card._pollRun !== runId) return;   // superseded
-      fetch(_api('/api/composite-run/' + encodeURIComponent(runId) + '/status'))
+      apiFetch('GET', '/api/composite-run/' + encodeURIComponent(runId) + '/status')
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (res) {
           if (card._pollRun !== runId) return;
@@ -2959,7 +2987,7 @@
   // discovered afterward via aws batch describe-jobs. A plain local-engine
   // run (unchanged, pre-existing behavior) fires with no confirm.
   function _confirmRemoteDispatchThen(fireFn, cancelFn) {
-    fetch(_api('/api/remote-run-config')).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (cfg) {
+    apiFetch('GET', '/api/remote-run-config').then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (cfg) {
       cfg = cfg || {};
       if (cfg.pinned) {
         var msg = 'Dispatch to AWS Batch:\n\n' +
@@ -3010,7 +3038,7 @@
     _confirmRemoteDispatchThen(function () {
       btn.disabled = true; btn.textContent = 'Launching…';
       if (status) { status.classList.remove('pcard-apply-err'); status.textContent = 'launching run…'; }
-      fetch(_api('/api/composite-test-run'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      apiFetch('POST', '/api/composite-test-run', payload)
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
         .then(function (res) {
           var rid = res.j && res.j.run_id;
@@ -3575,10 +3603,7 @@
     var orig = btn.textContent;
     btn.disabled = true; btn.textContent = 'Running…';
     out.innerHTML = '<div class="muted" style="font-size:0.85em">Running…</div>';
-    fetch('/api/registry/run-process', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: address, config: config, inputs: inputs, interval: interval }),
-    })
+    apiFetch('POST', '/api/registry/run-process', { address: address, config: config, inputs: inputs, interval: interval })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         btn.disabled = false; btn.textContent = orig;
@@ -3698,7 +3723,7 @@
           '" onclick="_selectRegistryEntry(\'' + _esc(p.address || '') + '\')" ondblclick="_zoomInOn(\'' + _esc(p.address || '') + '\')"' +
           ' title="Click to select · double-click to zoom in on this process">' +
         '<td class="reg-td-name" title="' + _esc(p.address || p.name || '') + '"><strong>' + _esc(p.name) + '</strong> <code>' + _esc(p.address || '') + '</code></td>' +
-        '<td class="reg-td-kind">' + (_procKindBadge(p.kind) || _esc(_procKindLabel(p.kind))) + '</td>' +
+        '<td class="reg-td-kind">' + (_procKindBadge(p.kind) || _esc(_procKindLabel(p.kind))) + _procBridgeBadge(p) + '</td>' +
         '<td title="' + _esc(mod(p)) + '">' + _esc(mod(p)) + '</td>' +
         '<td class="num">' + (p.use_count || 0) + '</td>' +
         '<td class="num">' + ((p.study_participation || {}).studies || 0) + '</td>' +
@@ -3930,7 +3955,17 @@
     var entries = vizEntries || [];
     var analyses = entries.filter(function(c) { return c.kind === 'analysis'; })
       .map(function (c) { return { name: c.name, address: c.address, description: c.doc || '', kind: 'analysis', source: 'framework' }; });
-    var vizzes   = entries.filter(function(c) { return c.kind !== 'analysis'; });
+    // Merge the address-classified workspace analyses (kind=step under ….analyses.…,
+    // which /api/visualization-classes doesn't enumerate) so they render in the
+    // Analyses tab instead of Processes. Dedupe by name (viz-classes entry wins).
+    var _seenA = {};
+    analyses.forEach(function (a) { _seenA[(a.name || '').trim()] = true; });
+    (window._addrClassifiedAnalyses || []).forEach(function (a) {
+      var nm = (a.name || '').trim();
+      if (nm && !_seenA[nm]) { _seenA[nm] = true; analyses.push(a); }
+    });
+    var cards    = entries.filter(function(c) { return c.kind === 'report_card' || c.kind === 'test'; });
+    var vizzes   = entries.filter(function(c) { var k = c.kind; return k !== 'analysis' && k !== 'report_card' && k !== 'test'; });
 
     // Analyses tab — same card renderers as everything else (grid/full/table),
     // and registered so semantic-zoom re-renders pick them up.
@@ -3949,14 +3984,42 @@
       .map(function(c) {
         return { name: c.name, address: c.address, source: 'framework', aliases: [] };
       });
+    // Union of build_core viz entries + catalog-only ones. Re-render (source
+    // grouping) when there are extras, and — symmetrically with the Analyses
+    // count above — keep the Visualizations count badge in sync. The initial
+    // setCount ran off build_core's registry (byKind.visualization, often 0);
+    // the real viz classes arrive here via /api/visualization-classes.
+    var current = (window._registryVizEntries || []);
+    var union = current.concat(extra);
     if (extra.length) {
       var container = document.getElementById('registry-visualizations-container');
-      if (container) {
-        // Re-render with the union so source grouping stays correct.
-        var current = (window._registryVizEntries || []);
-        _renderRegistryGrid('registry-visualizations-container', current.concat(extra));
-      }
+      if (container) _renderRegistryGrid('registry-visualizations-container', union);
     }
+    window._registryVizEntries = union;
+    var vCount = document.getElementById('registry-visualization-count');
+    if (vCount) vCount.textContent = union.length;
+
+    // Tests tab (report cards) — merge the framework TEST_REGISTRY / report-card
+    // classes from the catalog with any build_core-registered ones, and keep the
+    // count in sync, symmetrically with Analyses + Visualizations above. Without
+    // this the report-card classes never surface (build_core's report_card kind
+    // is usually empty) and the "Tests" count stays 0.
+    var rcExisting = {};
+    document.querySelectorAll('#registry-report_cards-container .registry-entry strong')
+      .forEach(function(s) { rcExisting[(s.textContent || '').trim()] = true; });
+    var rcExtra = cards.filter(function(c) { return !rcExisting[(c.name || '').trim()]; })
+      .map(function(c) {
+        return { name: c.name, address: c.address, description: c.doc || '', source: 'framework', kind: 'report_card' };
+      });
+    var rcCurrent = ((window._registryByKind || {})['registry-report_cards-container'] || []);
+    var rcUnion = rcCurrent.concat(rcExtra);
+    if (rcExtra.length) {
+      (window._registryByKind = window._registryByKind || {})['registry-report_cards-container'] = rcUnion;
+      var rcContainer = document.getElementById('registry-report_cards-container');
+      if (rcContainer) _renderRegistryGrid('registry-report_cards-container', rcUnion);
+    }
+    var rcCount = document.getElementById('registry-report_card-count');
+    if (rcCount) rcCount.textContent = rcUnion.length;
   }
   window._enrichRegistryWithVizClasses = _enrichRegistryWithVizClasses;
 
@@ -4100,7 +4163,7 @@
     if (status) status.textContent = '';
     var _p = window.DataSource
       ? window.DataSource.loadRegistry(refresh)
-      : fetch('/api/registry' + (refresh ? '?refresh=1' : '')).then(function(r) { return r.json(); });
+      : apiFetch('GET', '/api/registry' + (refresh ? '?refresh=1' : '')).then(function(r) { return r.json(); });
     _p
       .then(function(data) {
         if (status) {
@@ -4127,14 +4190,38 @@
         // Processes and Steps share one "Processes" tab — both are Processes
         // (edges); each card/row is badged Temporal vs Step (_procKindBadge).
         var procsAndSteps = byKind.process.concat(byKind.step);
+        // Analysis/visualization classes are mechanically Steps (they subclass
+        // Step), so build_core reports them as kind=step and they'd otherwise pile
+        // into the Processes tab even though they each have their own tab. Route
+        // them by the module-path convention (….analyses.… / ….visualizations.…)
+        // so a class shows under exactly one tab; genuine processes/steps stay put.
+        // (/api/visualization-classes only enumerates framework analyses, not the
+        // workspace's own sms_modules.analyses.* — hence the path-based split here.)
+        var _addrCat = function (e) {
+          var s = '.' + String(e.address || '').toLowerCase() + '.';
+          if (s.indexOf('.analyses.') >= 0 || s.indexOf('.analysis.') >= 0) return 'analysis';
+          if (s.indexOf('.visualizations.') >= 0 || s.indexOf('.visualization.') >= 0) return 'visualization';
+          return 'process';
+        };
+        var realProcs = [], addrAnalyses = [], addrViz = [];
+        procsAndSteps.forEach(function (p) {
+          var c = _addrCat(p);
+          if (c === 'analysis') addrAnalyses.push(Object.assign({}, p, {kind: 'analysis'}));
+          else if (c === 'visualization') addrViz.push(p);
+          else realProcs.push(p);
+        });
+        byKind.visualization = byKind.visualization.concat(addrViz);
+        // Stashed for _enrichRegistryWithVizClasses to merge into the Analyses tab
+        // (deduped by name) alongside the /api/visualization-classes analyses.
+        window._addrClassifiedAnalyses = addrAnalyses;
         window._registryByKind = {
-          'registry-processes-container': procsAndSteps,
+          'registry-processes-container': realProcs,
           'registry-emitters-container': byKind.emitter,
           'registry-visualizations-container': byKind.visualization,
           'registry-report_cards-container': byKind.report_card,
         };
         // Render tabbed Registry browser (Registry page).
-        _renderRegistryGrid('registry-processes-container', procsAndSteps);
+        _renderRegistryGrid('registry-processes-container', realProcs);
         _renderRegistryGrid('registry-emitters-container', byKind.emitter);
         window._registryVizEntries = byKind.visualization;
         _renderRegistryGrid('registry-visualizations-container', byKind.visualization);
@@ -4163,7 +4250,7 @@
             ? total + ' total'
             : wsCount + ' from this workspace, ' + (total - wsCount) + ' from environment';
         };
-        setCount('registry-process-count', procsAndSteps);
+        setCount('registry-process-count', realProcs);
         setCount('registry-emitter-count', byKind.emitter);
         setCount('registry-visualization-count', byKind.visualization);
         setCount('registry-report_card-count', byKind.report_card);
@@ -4234,7 +4321,7 @@
     det._loomLive = true;
     var id = det.getAttribute('data-id');
     var apiUrl = (window.DataSource && window.DataSource.apiUrl) ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
-    var liveUrl = apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) + '&chrome=off';
+    var liveUrl = apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) + '&chrome=off' + '&v=' + _LOOM_V;
     var iframe = det.querySelector('.ccard-loom-iframe');
     if (iframe) iframe.src = liveUrl;         // already open → swap in place
     else { det._loomLoaded = false; _openCompositeLoomInline(det); }  // not open yet → load live
@@ -4244,135 +4331,11 @@
   window._enableInlineLoomRun = _enableInlineLoomRun;
 
 
-  // The static composite-state URL the loom fetches. In a PUBLISHED snapshot the
-  // live /api/composite-resolve endpoint doesn't exist — the pre-resolved state
-  // is a static file at /api/composite-state/<id>.json — so point there; in live
-  // mode use the resolve endpoint. (Without this, "View" 404'd in the snapshot.)
-  function _compositeStateUrl(id, overrides) {
-    var apiUrl = (window.DataSource && window.DataSource.apiUrl)
-      ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
-    if (document.body.classList.contains('snapshot')) {
-      return apiUrl('/api/composite-state/' + encodeURIComponent(id) + '.json');
-    }
-    return apiUrl('/api/composite-resolve?id=' + encodeURIComponent(id)) +
-      (overrides ? '&overrides=' + encodeURIComponent(overrides) : '');
-  }
-
-  // "Pop out" — open this composite's loom in a separate window directly (live,
-  // full config + run), bypassing the standalone explorer page. In a published
-  // snapshot there's no live API, so open the static (?static=1&stateUrl=) URL.
-  function _popoutCompositeLoom(id) {
-    var apiUrl = (window.DataSource && window.DataSource.apiUrl)
-      ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
-    var url;
-    if (document.body.classList.contains('snapshot')) {
-      url = apiUrl('/bigraph-loom/index.html') + '?static=1&stateUrl=' + encodeURIComponent(_compositeStateUrl(id));
-    } else {
-      url = apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id);
-    }
-    var w = window.open(url, '_blank',
-      'width=1280,height=860,menubar=no,toolbar=no,location=no,resizable=yes,scrollbars=yes');
-    if (!w) alert('Popup blocked. Allow popups from this site to pop out the composite.');
-  }
-  window._popoutCompositeLoom = _popoutCompositeLoom;
-
-
-
-  function _openCompositeLoomInline(det) {
-    if (!det || det._loomLoaded) return;
-    // <details> embeds only mount when open; a plain container (the ProcessCard
-    // Explore section) has no `.open` and mounts as soon as it's asked to.
-    if (det.tagName === 'DETAILS' && !det.open) return;
-    det._loomLoaded = true;
-    var id = det.getAttribute('data-id');
-    var host = det.querySelector('.ccard-loom-frame');
-    if (!host) return;
-    host.innerHTML = '<p class="muted" style="padding:10px;font-size:0.85em">Resolving composite (this can take a moment)…</p>';
-    var apiUrl = (window.DataSource && window.DataSource.apiUrl) ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
-    // Live mode (user hit "Enable running") loads the same URL as the pop-out
-    // (?id=<ref>) so config is editable and Run works; otherwise a read-only
-    // static render pointed at live composite-resolve.
-    // chrome=off → embedded (no breadcrumb/tab strip). An optional data-view
-    // (e.g. "visualizations"/"results"/"document") selects which loom tab the
-    // embed shows — used by the card's Outputs section.
-    var tabParam = det.getAttribute('data-view') ? '&tab=' + encodeURIComponent(det.getAttribute('data-view')) : '';
-    // On a live dashboard the view-only loom still carries the composite id +
-    // live=1 so drilling into an inner Composite (a Composite Process like
-    // EcoliWCM) resolves via the live /api/composite-inner-state endpoint —
-    // static=1 alone (a published snapshot) would look for a pre-built file that
-    // only a snapshot ships. Omit both under body.snapshot (truly no server).
-    var liveInner = document.body.classList.contains('snapshot')
-      ? '' : '&id=' + encodeURIComponent(id) + '&live=1';
-    // `data-surface="full"` → the WHOLE stacked loom surface (Configure/Inputs +
-    // bigraph + Run/Step + Outputs), header hidden (the card names the composite).
-    // It runs LIVE (id-based) so Run + Apply work; the card no longer wraps its
-    // own Configure/Run/Outputs. Everything else keeps the chrome=off bigraph-only
-    // preview.
-    var fullSurface = det.getAttribute('data-surface') === 'full';
-    var isSnapshot = document.body.classList.contains('snapshot');
-    var chromeParam = fullSurface ? '&header=off' : '&chrome=off';
-    var loomUrl = (det._loomLive || (fullSurface && !isSnapshot))
-      ? apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) +
-          (det._overrides ? '&overrides=' + encodeURIComponent(det._overrides) : '') + chromeParam + tabParam
-      : apiUrl('/bigraph-loom/index.html') + '?static=1&stateUrl=' +
-          encodeURIComponent(_compositeStateUrl(id, det._overrides)) + liveInner + chromeParam + tabParam;
-    var f = document.createElement('iframe');
-    f.className = 'ccard-loom-iframe' + (fullSurface ? ' ccard-loom-iframe-full' : '');
-    f.setAttribute('title', 'Loom — ' + id);
-    f.src = loomUrl;
-    host.innerHTML = '';
-    // Restore a previously dragged height (shared across all loom embeds); the
-    // full surface needs more room by default (four stacked zones).
-    var savedH = 0;
-    try { savedH = parseInt(localStorage.getItem('viv.loomFrameH') || '', 10) || 0; } catch (e) { /* private mode */ }
-    if (!savedH && fullSurface) savedH = Math.round(window.innerHeight * 0.72);
-    if (savedH) host.style.height = Math.max(fullSurface ? 480 : 220, Math.min(Math.round(window.innerHeight * 0.92), savedH)) + 'px';
-    host.appendChild(f);
-    _wireLoomResize(host, f);
-  }
-  window._openCompositeLoomInline = _openCompositeLoomInline;
-
-  // Drag-to-resize the embedded loom panel. A full-width grip below the iframe
-  // grows/shrinks the frame; the card grows with it. Height persists across
-  // embeds via localStorage. Pointer events are disabled on the iframe mid-drag
-  // so the gesture keeps tracking when the cursor moves over the loom.
-  function _wireLoomResize(frame, iframe) {
-    var grip = document.createElement('div');
-    grip.className = 'ccard-loom-resize';
-    grip.title = 'Drag to resize';
-    frame.appendChild(grip);
-    var startY = 0, startH = 0;
-    function pointY(e) { return e.touches && e.touches[0] ? e.touches[0].clientY : e.clientY; }
-    function onMove(e) {
-      var maxH = Math.round(window.innerHeight * 0.92);
-      var h = Math.max(220, Math.min(maxH, startH + (pointY(e) - startY)));
-      frame.style.height = h + 'px';
-      if (e.cancelable) e.preventDefault();
-      try { localStorage.setItem('viv.loomFrameH', String(Math.round(h))); } catch (err) { /* private mode */ }
-    }
-    function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onUp);
-      if (iframe) iframe.style.pointerEvents = '';
-      frame.classList.remove('is-resizing');
-    }
-    function onDown(e) {
-      startY = pointY(e);
-      startH = frame.getBoundingClientRect().height;
-      if (iframe) iframe.style.pointerEvents = 'none';
-      frame.classList.add('is-resizing');
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      document.addEventListener('touchmove', onMove, { passive: false });
-      document.addEventListener('touchend', onUp);
-      if (e.cancelable) e.preventDefault();
-    }
-    grip.addEventListener('mousedown', onDown);
-    grip.addEventListener('touchstart', onDown, { passive: false });
-  }
-  window._wireLoomResize = _wireLoomResize;
+  // The loom embed glue — _compositeStateUrl / _openCompositeLoomInline /
+  // _wireLoomAutoHeight — is defined ONCE in loom-embed.js (loaded before this
+  // file in the SPA, and standalone in the study-detail iframe). It installs
+  // window globals; the bare calls in this file resolve to them. Keeping a
+  // single copy avoids the byte-identical-duplication drift this used to carry.
 
 
   // Lazily fetch a composite's process/store counts when its "structure"
@@ -4384,7 +4347,7 @@
     if (!body || body.getAttribute('data-loaded') === '1') return;
     body.setAttribute('data-loaded', '1');
     body.textContent = 'building…';
-    fetch('/api/composite-state?ref=' + encodeURIComponent(id))
+    apiFetch('GET', '/api/composite-state?ref=' + encodeURIComponent(id))
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var root = (d && d.state) ? (d.state.state || d.state) : null;
@@ -4405,13 +4368,33 @@
       .catch(function() { body.textContent = 'unavailable'; });
   };
 
-  function _loadComposites() {
+  function _loadComposites(_attempt) {
+    _attempt = _attempt || 0;
+    // Discovery re-imports the workspace package in a subprocess (~seconds cold),
+    // and a cold pooled worker can briefly answer empty / with an `error`. Show a
+    // "Loading…" state on the first attempt (rather than flashing "No composites
+    // registered.") and retry a cold/empty/errored response a few times before
+    // concluding the workspace genuinely has none.
+    if (_attempt === 0 && !(window._composites && window._composites.length)) {
+      var _el0 = document.getElementById('registry-composites-container');
+      if (_el0) _el0.innerHTML = '<p class="empty-state">Loading composites…</p>';
+    }
     var _p = window.DataSource
       ? window.DataSource.loadComposites()
-      : fetch('/api/composites').then(function(r) { return r.json(); });
+      : apiFetch('GET', '/api/composites').then(function(r) { return r.json(); });
+    var _retry = function () {
+      // ~error: definitely transient (cold/unavailable) → retry harder.
+      // ~empty, no error: probably genuine, but do one safety retry for a cold
+      // race. Non-empty → render.
+      setTimeout(function () { _loadComposites(_attempt + 1); }, 700 + _attempt * 900);
+    };
     _p
       .then(function(data) {
-        var composites = data.composites || [];
+        var composites = (data && data.composites) || [];
+        var hadError = !!(data && data.error);
+        var maxAttempts = hadError ? 5 : (composites.length ? 1 : 2);
+        if (!composites.length && _attempt + 1 < maxAttempts) { _retry(); return; }
+        if (hadError && !composites.length && _attempt + 1 < maxAttempts) { _retry(); return; }
         // Cache by id so onclick handlers pass just the id; _useComposite
         // looks the full object up. Inline JSON.stringify in onclick attrs
         // breaks when descriptions contain apostrophes / quotes.
@@ -4421,7 +4404,9 @@
 
         // (a) Registry/Processes-page "Composites" tab — accordion cards.
         _renderRegistryComposites(composites);
-
+      })
+      .catch(function () {
+        if (_attempt + 1 < 5) { _retry(); }
       });
   }
   window._loadComposites = _loadComposites;
@@ -5013,11 +4998,7 @@
 
   function _uninstallFromInstalled(name) {
     if (!confirm('Uninstall ' + name + '? This removes it from this workspace\'s dependencies.')) return;
-    fetch('/api/catalog-uninstall', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('POST', '/api/catalog-uninstall', {name: name})
       .then(function(r) { return r.json().then(function(j) { return {ok: r.ok, json: j}; }); })
       .then(function(p) {
         if (!p.ok) {
@@ -5039,7 +5020,7 @@
   window._uninstallFromInstalled = _uninstallFromInstalled;
 
   function _checkSystemDepsForInstalled(name) {
-    fetch('/api/system-deps-check?name=' + encodeURIComponent(name))
+    apiFetch('GET', '/api/system-deps-check?name=' + encodeURIComponent(name))
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
@@ -5772,15 +5753,18 @@
     Object.keys(byRepo).forEach(function (k) {
       var b = byRepo[k], c = b._cat;
       if (!b._fromArtifacts && c) {
+        b.process = c.n_processes || 0;
         b.composite = c.n_composites || 0;
         b.study = c.n_studies || 0;
         b.investigation = c.n_investigations || 0;
         b.total = b.process + b.composite + b.study + b.investigation;
         b.use = c.n_used || 0;
       }
-      // Affected studies = this workspace's OWN studies that depend on the repo
-      // (module_stats.n_used — deep, via composite→process usage). The real
-      // "what breaks if I uninstall" signal, distinct from total artifact uses.
+      // Affected studies = studies that depend on / use this repo — this
+      // workspace's OWN studies AND linked (federated) workspaces' studies
+      // (module_stats.n_used — deep, via composite→process usage + bare-name/
+      // alias attribution). The real "what breaks if I uninstall" signal,
+      // distinct from total artifact uses.
       b.affected = (c && typeof c.n_used === 'number') ? c.n_used : 0;
       if (!b.url) b.url = _marketRepoUrl(b.repo);
     });
@@ -5839,7 +5823,7 @@
   function _repoFoot(b) {
     var meta = [];
     if (b.total) meta.push(b.total + ' artifact' + (b.total === 1 ? '' : 's'));
-    if (b.affected) meta.push('<span title="studies in your investigations that depend on this repo"><b>' + b.affected + '</b> affected stud' + (b.affected === 1 ? 'y' : 'ies') + '</span>');
+    if (b.affected) meta.push('<span title="Studies that depend on / use this repository (in this workspace and linked workspaces)"><b>' + b.affected + '</b> affected stud' + (b.affected === 1 ? 'y' : 'ies') + '</span>');
     return '<div class="repo-card-foot"><span class="repo-meta">' + (meta.join(' · ') || '&nbsp;') + '</span>'
       + _repoActions(b) + '</div>';
   }
@@ -5877,11 +5861,11 @@
       + '<th class="repo-th" style="width:100px">Processes</th>'
       + '<th class="repo-th" style="width:100px">Composites</th>'
       + '<th class="repo-th" style="width:90px">Studies</th>'
-      + '<th class="repo-th" style="width:130px" title="Studies in your investigations that depend on this repo">Affected studies</th>'
+      + '<th class="repo-th" style="width:130px" title="Studies that depend on / use this repository (in this workspace and linked workspaces)">Affected studies</th>'
       + '<th class="repo-th" style="width:190px"></th></tr>';
     var body = repos.map(function (b) {
       var aff = b.affected
-        ? '<span class="repo-affected" title="studies in your investigations that depend on this repo">' + b.affected + '</span>'
+        ? '<span class="repo-affected" title="Studies that depend on / use this repository (in this workspace and linked workspaces)">' + b.affected + '</span>'
         : '<span class="repo-td-zero">—</span>';
       return '<tr class="repo-tr">'
         + '<td class="market-td-name">📦 ' + _esc(_vivaLabel(b.display_name || b.repo))
@@ -6079,7 +6063,7 @@
     // If anything is missing, show the consent modal instead of jumping
     // straight to the pip-install path (which would fail with a cryptic
     // dlopen error at first Run).
-    fetch('/api/system-deps-check?name=' + encodeURIComponent(name))
+    apiFetch('GET', '/api/system-deps-check?name=' + encodeURIComponent(name))
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var rOk = parts[0], j = parts[1];
@@ -6110,11 +6094,7 @@
     var body = {name: name};
     if (opts && opts.skip_system_deps_check) body.skip_system_deps_check = true;
     if (opts && opts.full_repo) body.full_repo = true;
-    fetch('/api/catalog-install', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    })
+    apiFetch('POST', '/api/catalog-install', body)
       .then(function(r) { return r.json().then(function(j) { return [r.ok, r.status, j]; }); })
       .then(function(parts) {
         var ok = parts[0], status = parts[1], json = parts[2];
@@ -6142,7 +6122,7 @@
         var msg = "Installed " + name + ".\nCommit: " + (json.commit || 'n/a');
         alert(msg);
         window._registryLoaded = false;  // force registry reload on next switch
-        fetch('/api/render', {method: 'POST'}).finally(function() {
+        apiFetch('POST', '/api/render').finally(function() {
           location.reload();
         });
       })
@@ -6256,11 +6236,7 @@
     var btn = document.getElementById('sysdeps-install-btn');
     if (errEl) errEl.textContent = '';
     if (btn) { btn.disabled = true; btn.textContent = 'Installing…'; }
-    fetch('/api/system-deps-install', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name, check_names: checkNames}),
-    })
+    apiFetch('POST', '/api/system-deps-install', {name: name, check_names: checkNames})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
@@ -6391,11 +6367,7 @@
     var errEl = document.getElementById('uninstall-error');
     if (errEl) errEl.textContent = '';
     if (btn) { btn.disabled = true; btn.textContent = 'Uninstalling…'; }
-    fetch('/api/catalog-uninstall', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('POST', '/api/catalog-uninstall', {name: name})
       .then(function(r) { return r.json().then(function(j) { return {ok: r.ok, json: j}; }); })
       .then(function(p) {
         if (!p.ok) {
@@ -6450,15 +6422,11 @@
 
   function _deleteSimulation(name) {
     if (!confirm("Remove simulation '" + name + "'?")) return;
-    fetch('/api/simulation', {
-      method: 'DELETE',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('DELETE', '/api/simulation', {name: name})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         if (!parts[0]) { alert("Error: " + (parts[1].error || "unknown")); return; }
-        fetch('/api/render', {method: 'POST'}).finally(function() { location.reload(); });
+        apiFetch('POST', '/api/render').finally(function() { location.reload(); });
       });
   }
 
@@ -6475,11 +6443,7 @@
     var btn = event.target;
     btn.disabled = true;
     btn.textContent = "Installing…";
-    fetch('/api/import-install', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('POST', '/api/import-install', {name: name})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], json = parts[1];
@@ -6492,7 +6456,7 @@
         alert("Installed.\nBranch: " + json.branch + "\n\nRegistry will refresh; new processes may appear after pip-cached subprocess restarts.");
         // Drop registry cache, switch to Registry tab so user sees the change.
         window._registryLoaded = false;
-        fetch('/api/render', {method: 'POST'}).finally(function() {
+        apiFetch('POST', '/api/render').finally(function() {
           location.hash = '#modules';
           location.reload();
         });
@@ -6504,7 +6468,7 @@
   function _toggleDirtyPanel() {
     var panel = document.getElementById('ws-dirty-panel');
     if (panel) { panel.remove(); return; }
-    fetch('/api/dirty-status')
+    apiFetch('GET', '/api/dirty-status')
       .then(function(r){ return r.json(); })
       .then(_renderDirtyPanel)
       .catch(function(err){ console.warn('dirty-status failed:', err); });
@@ -6568,10 +6532,7 @@
     };
     var submitBtn = form.querySelector('button[type=submit]');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Pushing…'; }
-    fetch('/api/work-link-branch', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    }).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/work-link-branch', body).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
       .then(function (pair) {
         var ok = pair[0], j = pair[1];
         if (!ok) {
@@ -6601,11 +6562,7 @@
   function _startWork() {
     var name = prompt("Investigation branch name (suggested: investigation/<short-slug>):", "investigation/");
     if (!name) return;
-    fetch('/api/work-start', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({branch: name.trim()}),
-    })
+    apiFetch('POST', '/api/work-start', {branch: name.trim()})
       .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
       .then(function(parts){
         if (!parts[0]) { alert("Could not start investigation branch:\n" + (parts[1].error || 'unknown')); return; }
@@ -6616,7 +6573,7 @@
   window._startWork = _startWork;
 
   function _pushWork() {
-    fetch('/api/work-push', {method: 'POST'})
+    apiFetch('POST', '/api/work-push')
       .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
       .then(function(parts){
         var ok = parts[0], json = parts[1];
@@ -6647,11 +6604,7 @@
     };
     var errEl = form.querySelector('.form-error');
     errEl.textContent = '';
-    fetch('/api/work-create-pr', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data),
-    })
+    apiFetch('POST', '/api/work-create-pr', data)
       .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
       .then(function(parts){
         var ok = parts[0], json = parts[1];
@@ -6674,11 +6627,7 @@
     var input = form.elements[fieldName];
     btn.disabled = true;
     btn.textContent = "…";
-    fetch('/api/suggest', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({kind: kind}),
-    })
+    apiFetch('POST', '/api/suggest', {kind: kind})
       .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
       .then(function(parts){
         var ok = parts[0], json = parts[1];
@@ -6697,7 +6646,7 @@
       return;
     }
     btn.textContent = "polling (" + attempts + ")";
-    fetch('/api/suggest-poll?id=' + encodeURIComponent(id))
+    apiFetch('GET', '/api/suggest-poll?id=' + encodeURIComponent(id))
       .then(function(r){ return r.json(); })
       .then(function(json){
         if (json.ready) {
@@ -6715,7 +6664,7 @@
 
   function _endWork() {
     if (!confirm("End this investigation branch? Switches you back to base; the branch is preserved.")) return;
-    fetch('/api/work-end', {method: 'POST'})
+    apiFetch('POST', '/api/work-end')
       .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
       .then(function(parts){
         if (!parts[0]) { alert("Could not end investigation branch:\n" + (parts[1].error || 'unknown')); return; }
@@ -6736,11 +6685,7 @@
     if (spinner) spinner.style.display = "inline";
     if (out) out.textContent = "Running…";
 
-    fetch("/api/run-tests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: model }),
-    })
+    apiFetch('POST', "/api/run-tests", { model: model })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (btn) btn.disabled = false;
@@ -7012,12 +6957,12 @@
                  && document.getElementById('investigations-list');
     var p1 = (window.DataSource
       ? window.DataSource.loadInvestigationsFlat()
-      : fetch('/api/investigations').then(function(r) { return r.json(); })
+      : apiFetch('GET', '/api/investigations').then(function(r) { return r.json(); })
     ).catch(function() { return {investigations: []}; });
     var p2 = hasIsetUI
       ? (window.DataSource && window.DataSource.loadIsetList
           ? window.DataSource.loadIsetList()
-          : fetch('/api/investigation-summaries').then(function(r) { return r.json(); })
+          : apiFetch('GET', '/api/investigation-summaries').then(function(r) { return r.json(); })
         ).catch(function() { return {investigations: []}; })
       : Promise.resolve({investigations: []});
     Promise.all([p1, p2]).then(function(arr) {
@@ -7220,7 +7165,7 @@
   // -------------------------------------------------------------------------
 
   function _vizRefreshStatus(name) {
-    fetch('/api/visualization-status?name=' + encodeURIComponent(name))
+    apiFetch('GET', '/api/visualization-status?name=' + encodeURIComponent(name))
       .then(function(r) { return r.json(); })
       .then(function(s) {
         var el = document.getElementById('viz-status-' + name);
@@ -7238,11 +7183,7 @@
   window._vizRefreshAll = _vizRefreshAll;
 
   function _vizCreate(name) {
-    fetch('/api/visualization-create', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('POST', '/api/visualization-create', {name: name})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(pair) {
         var ok = pair[0], json = pair[1];
@@ -7259,7 +7200,7 @@
 
   function _vizPollUntilCreated(name, attempts) {
     if (attempts > 60) return;  // ~2 minutes
-    fetch('/api/visualization-status?name=' + encodeURIComponent(name))
+    apiFetch('GET', '/api/visualization-status?name=' + encodeURIComponent(name))
       .then(function(r) { return r.json(); })
       .then(function(s) {
         _vizRefreshStatus(name);
@@ -7269,11 +7210,7 @@
   }
 
   function _vizAddToProject(name) {
-    fetch('/api/visualization-add-to-project', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('POST', '/api/visualization-add-to-project', {name: name})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(pair) {
         var ok = pair[0], json = pair[1];
@@ -7285,33 +7222,25 @@
 
   function _vizCommit(names) {
     if (!confirm('Commit ' + names.length + ' visualization(s) to the active branch?')) return;
-    fetch('/api/visualization-commit-batch', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({names: names}),
-    })
+    apiFetch('POST', '/api/visualization-commit-batch', {names: names})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(pair) {
         var ok = pair[0], json = pair[1];
         if (!ok) { alert('Commit failed: ' + (json.error || 'unknown')); return; }
         alert('Committed: ' + (json.committed || []).join(', '));
-        fetch('/api/render', {method: 'POST'}).finally(function() { location.reload(); });
+        apiFetch('POST', '/api/render').finally(function() { location.reload(); });
       });
   }
   window._vizCommit = _vizCommit;
 
   function _vizCommitAll() {
-    fetch('/api/visualization-commit-batch', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({}),
-    })
+    apiFetch('POST', '/api/visualization-commit-batch', {})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(pair) {
         var ok = pair[0], json = pair[1];
         if (!ok) { alert('Commit-all failed: ' + (json.error || 'unknown')); return; }
         alert('Committed: ' + (json.committed || []).join(', '));
-        fetch('/api/render', {method: 'POST'}).finally(function() { location.reload(); });
+        apiFetch('POST', '/api/render').finally(function() { location.reload(); });
       });
   }
   window._vizCommitAll = _vizCommitAll;
@@ -7332,10 +7261,7 @@
     // Preview a registered workspace.yaml instance by name. The server
     // looks up its class+config and renders against demo data (or a real
     // investigation if source is set later via the modal).
-    fetch('/api/visualization-preview-instance', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name, source: 'demo'}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/visualization-preview-instance', {name: name, source: 'demo'}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -7349,10 +7275,7 @@
 
   function _vizClassPreview(address, className) {
     // Preview a raw Visualization class (no config) against demo data.
-    fetch('/api/visualization-preview', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({address: address, source: 'demo'}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/visualization-preview', {address: address, source: 'demo'}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -7366,16 +7289,12 @@
 
   function _vizRemove(name) {
     if (!confirm("Remove visualization '" + name + "'?")) return;
-    fetch('/api/visualization', {
-      method: 'DELETE',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    })
+    apiFetch('DELETE', '/api/visualization', {name: name})
       .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(pair) {
         var ok = pair[0], json = pair[1];
         if (!ok) { alert('Remove failed: ' + (json.error || 'unknown')); return; }
-        fetch('/api/render', {method: 'POST'}).finally(function() { location.reload(); });
+        apiFetch('POST', '/api/render').finally(function() { location.reload(); });
       });
   }
   window._vizRemove = _vizRemove;
@@ -7445,11 +7364,7 @@
     var name = id.indexOf('.') >= 0 ? id.split('.').pop() : id;
     var btn = document.getElementById('ce-begin-study-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Starting study…'; }
-    fetch('/api/study-create-from-composite', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({composite_name: name}),
-    })
+    apiFetch('POST', '/api/study-create-from-composite', {composite_name: name})
       .then(function(r) { return r.json().then(function(j) { return {ok: r.ok, body: j}; }); })
       .then(function(res) {
         if (!res.ok) {
@@ -7469,7 +7384,7 @@
         if (typeof _openInvestigation === 'function') {
           _openInvestigation(newName);
         } else {
-          fetch('/api/investigation/' + encodeURIComponent(newName))
+          apiFetch('GET', '/api/investigation/' + encodeURIComponent(newName))
             .then(function(r) { return r.json(); })
             .then(function(data) {
               if (typeof _renderInvestigationDetail === 'function') {
@@ -7526,7 +7441,7 @@
     if (window._ceHistoryFetching) return;
     window._ceHistoryFetching = true;
     var id = window._ceCurrent.id;
-    fetch(_api('/api/composite-runs?spec_id=' + encodeURIComponent(id)))
+    apiFetch('GET', '/api/composite-runs?spec_id=' + encodeURIComponent(id))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var runs = data.runs || [];
@@ -7613,7 +7528,7 @@
     var body = document.getElementById('ce-compare-body');
     body.innerHTML = '<p class="empty-state">Loading&hellip;</p>';
     Promise.all(ids.map(function(id) {
-      return fetch(_api('/api/composite-run/' + encodeURIComponent(id)))
+      return apiFetch('GET', '/api/composite-run/' + encodeURIComponent(id))
         .then(function(r) { return r.json(); });
     })).then(function(results) {
       var runs = ids.map(function(id, i) {
@@ -7700,7 +7615,7 @@
       _ceShowState(run_id, step, cached);
       return;
     }
-    fetch(_api('/api/composite-run/' + encodeURIComponent(run_id)))
+    apiFetch('GET', '/api/composite-run/' + encodeURIComponent(run_id))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var trajectory = data.trajectory || [];
@@ -7958,7 +7873,7 @@
     var el = document.getElementById('composite-explore-svg-legacy');
     if (!el) return;
     el.innerHTML = '<p style="color:#888">Loading SVG…</p>';
-    fetch(_api('/api/composite-resolve?id=' + encodeURIComponent(ref)))
+    apiFetch('GET', '/api/composite-resolve?id=' + encodeURIComponent(ref))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.svg) {
@@ -8131,16 +8046,12 @@
     var resultsEl = document.getElementById('ce-test-results');
     _confirmRemoteDispatchThen(function () {
       resultsEl.innerHTML = '<p class="empty-state">Starting run&hellip;</p>';
-      fetch(_api('/api/composite-test-run'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
+      apiFetch('POST', '/api/composite-test-run', {
           id: window._ceCurrent.id,
           overrides: overrides,
           steps: steps,
           emit_paths: window._explorerEmitPaths || [],
-        }),
-      })
+        })
         .then(function(r) { return r.json().then(function(j) { return [r.status, j]; }); })
         .then(function(parts) {
           var code = parts[0], body = parts[1];
@@ -8230,16 +8141,12 @@
     var submitBtn = document.querySelector('#form-save-as-study button[type="submit"]');
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Creating…'; }
 
-    fetch('/api/study-create-from-run', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
+    apiFetch('POST', '/api/study-create-from-run', {
         name: name,
         objective: objective,
         description: description,
         source_run_id: sourceRunId,
-      }),
-    })
+      })
       .then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
       .then(function(res) {
         if (res.status === 200) {
@@ -8288,7 +8195,7 @@
     }
     // Cache not populated yet (user landed here without visiting
     // Simulation Setup). Fetch synchronously-as-possible, then open.
-    fetch('/api/composites')
+    apiFetch('GET', '/api/composites')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var composites = data.composites || [];
@@ -8314,7 +8221,7 @@
   function _loadInvestigations() {
     var _p = window.DataSource
       ? window.DataSource.loadInvestigationsFlat()
-      : fetch('/api/investigations').then(function(r) {
+      : apiFetch('GET', '/api/investigations').then(function(r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
         });
@@ -8567,7 +8474,7 @@
           'onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'\'">' +
           '<div style="display:flex;align-items:center;gap:8px">' +
             '<span style="width:7px;height:7px;border-radius:50%;background:' + m.color + '"></span>' +
-            '<a href="/studies/' + encodeURIComponent(slug) + '" onclick="event.stopPropagation()" style="text-decoration:none">' +
+            '<a href="' + (window.__BASE_PATH__ || '') + '/studies/' + encodeURIComponent(slug) + '" onclick="event.stopPropagation()" style="text-decoration:none">' +
               '<code style="font-size:0.92em;color:#475569">' + _esc(slug) + '</code></a>' +
             (title ? '<span style="font-size:0.86em;color:#334155">' + _esc(title) + '</span>' : '') +
             '<span style="margin-left:auto;color:#94a3b8;font-size:0.82em">' + _esc(m.label) + '</span>' +
@@ -9047,7 +8954,7 @@
     var errEl = form.querySelector('.form-error');
     if (!name) { errEl.textContent = 'Name required.'; return; }
     var post = function (url, body) {
-      return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      return apiFetch('POST', url, body)
         .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); });
     };
     if (window._browseCreateMode === 'investigation') {
@@ -9066,7 +8973,7 @@
           if (!p[0]) { errEl.textContent = p[1].error || 'Create failed.'; return; }
           var created = (p[1] && p[1].name) || name;
           // Seed the question on the scaffolded study (best-effort).
-          post('/api/study-narrative-set', { study: created, path: 'purpose.question', value: prompt })
+          apiFetch('PATCH', '/api/study/' + encodeURIComponent(created), { narrative: { path: 'purpose.question', value: prompt } })
             .catch(function () {}).then(function () {
               closeModal('modal-browse-create');
               window._investigationsLoaded = false;
@@ -9363,11 +9270,7 @@
   function _setInvestigationStatus(btn, name, status) {
     var orig = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
-    fetch('/api/investigation-set-status', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: name, status: status}),
-    })
+    apiFetch('PATCH', '/api/investigation/' + encodeURIComponent(name), {status: status})
       .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function() {
         if (typeof _loadInvestigationSets === 'function') _loadInvestigationSets();
@@ -9864,7 +9767,7 @@
           // the badges off; the graph still renders.
           var _isSnap = (window.__DASH_CONFIG__ || {}).mode === 'snapshot';
           var _statusP = _isSnap ? Promise.resolve(null) :
-            fetch('/api/investigation-trigger-status?investigation=' + encodeURIComponent(slug))
+            apiFetch('GET', '/api/investigation-trigger-status?investigation=' + encodeURIComponent(slug))
               .then(function (r) { return r.ok ? r.json() : null; })
               .catch(function () { return null; });
           // Snapshot-aware: DataSource resolves to /api/investigation-graph/<slug>.json
@@ -9872,7 +9775,7 @@
           // 404s there, dropping the evidence chains from every card).
           var _graphP = (window.DataSource && window.DataSource.loadInvestigationGraph
             ? window.DataSource.loadInvestigationGraph(slug)
-            : fetch('/api/investigation-graph?investigation=' + encodeURIComponent(slug))
+            : apiFetch('GET', '/api/investigation-graph?investigation=' + encodeURIComponent(slug))
                 .then(function (r) { if (!r.ok) throw new Error('graph ' + r.status); return r.json(); })
           );
           _statusP.then(function (status) {
@@ -10009,11 +9912,7 @@
     var panel = document.getElementById('investigation-run-progress');
     if (btn) { btn.disabled = true; btn.textContent = '… queuing'; }
     if (panel) { panel.style.display = ''; panel.innerHTML = '<div class="inv-run-progress-banner">Queuing run-unblocked job…</div>'; }
-    fetch('/api/investigation-run-unblocked', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: name}),
-    }).then(function(r) {
+    apiFetch('POST', '/api/investigation-run-unblocked', {investigation: name}).then(function(r) {
       return r.json().then(function(j) { return {ok: r.ok, body: j, status: r.status}; });
     }).then(function(res) {
       if (!res.ok) {
@@ -10069,11 +9968,7 @@
     var panel = document.getElementById('investigation-run-progress');
     if (btn) { btn.disabled = true; btn.textContent = '… launching'; }
     if (panel) { panel.style.display = ''; panel.innerHTML = '<div class="inv-run-progress-banner">Launching reruns…</div>'; }
-    fetch('/api/investigation-rerun', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ investigation: name }),
-    }).then(function(r) {
+    apiFetch('POST', '/api/investigation-rerun', { investigation: name }).then(function(r) {
       return r.json().then(function(j) { return { ok: r.ok, body: j, status: r.status }; });
     }).then(function(res) {
       if (btn) { btn.disabled = false; btn.textContent = '▶ Run current spec'; }
@@ -10134,14 +10029,10 @@
       if (!prog.waiting) { lastDone = (prog.done || 0); return; }
       if ((prog.done || 0) === lastDone) return;   // nothing settled since last look
       lastDone = (prog.done || 0);
-      fetch(_api('/api/investigation-run-redrive'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: jobId })
-      }).catch(function() { /* best-effort: the next change re-tries */ });
+      apiFetch('POST', '/api/investigation-run-redrive', { job_id: jobId }).catch(function() { /* best-effort: the next change re-tries */ });
     }
     function tick() {
-      fetch('/api/investigation-run-unblocked-status?job_id=' + encodeURIComponent(jobId))
+      apiFetch('GET', '/api/investigation-run-unblocked-status?job_id=' + encodeURIComponent(jobId))
         .then(function(r) { return r.json().then(function(j) { return {ok: r.ok, body: j}; }); })
         .then(function(res) {
           if (!res.ok) return;
@@ -10339,13 +10230,9 @@
     if (!_dagInvSlug) return;
     var original = btnEl ? btnEl.textContent : '';
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'triggering…'; }
-    fetch('/api/investigation-trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    apiFetch('POST', '/api/investigation-trigger', {
         investigation: _dagInvSlug, target_study: slug, on_missing: onMissing,
-      }),
-    }).then(function (r) {
+      }).then(function (r) {
       return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
     }).then(function (res) {
       if (btnEl) { btnEl.disabled = false; btnEl.textContent = original; }
@@ -10378,7 +10265,7 @@
 
   function _refreshDagTriggerStatus() {
     if (!_dagInvSlug) return;
-    fetch('/api/investigation-trigger-status?investigation=' + encodeURIComponent(_dagInvSlug))
+    apiFetch('GET', '/api/investigation-trigger-status?investigation=' + encodeURIComponent(_dagInvSlug))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (status) {
         if (!status) return;
@@ -11031,11 +10918,7 @@
   // surfaces converge on the same backend.
   function _seedFollowupAndOpen(parentName, idx) {
     if (!confirm('Seed a new study from this follow-up?\n\nA new study.yaml will be created under studies/<new-name>/.')) return;
-    fetch('/api/study-seed-followup', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({parent: parentName, followup_idx: idx}),
-    }).then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
+    apiFetch('POST', '/api/study-seed-followup', {parent: parentName, followup_idx: idx}).then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
       .then(function(res) {
         if (res.status !== 200 || res.body.error) {
           alert('Seed failed: ' + (res.body.error || res.status));
@@ -11064,11 +10947,7 @@
     var payload = {parent: parentName};
     if (proposalId) payload.proposal_id = proposalId;
     payload.proposal_idx = proposalIdx;
-    fetch('/api/study-seed-followup', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
+    apiFetch('POST', '/api/study-seed-followup', payload).then(function(r) { return r.json().then(function(d) { return {status: r.status, body: d}; }); })
       .then(function(res) {
         if (res.status !== 200 || res.body.error) {
           alert('Seed failed: ' + (res.body.error || res.status));
@@ -11307,10 +11186,7 @@
     if (ev) ev.stopPropagation();
     if ((window.__DASH_CONFIG__ || {}).mode === 'snapshot') return;
     if (!confirm("Run this study's current baseline spec as a new run?")) return;
-    fetch('/api/study-run-baseline', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({study: slug}),
-    }).then(function (r) { return r.json(); }).then(function (j) {
+    apiFetch('POST', '/api/study-run-baseline', {study: slug}).then(function (r) { return r.json(); }).then(function (j) {
       var id = j && (j.run_id || j.simulation_id);
       var msg = id ? ('Run launched — ' + id) : ('Run: ' + ((j && j.error) || 'done'));
       if (typeof _showToast === 'function') _showToast(msg); else alert(msg);
@@ -11321,16 +11197,13 @@
   window._vivReproduceStudyFromRow = function (ev, slug) {
     if (ev) ev.stopPropagation();
     if ((window.__DASH_CONFIG__ || {}).mode === 'snapshot') return;
-    fetch('/api/simulations?study=' + encodeURIComponent(slug))
+    apiFetch('GET', '/api/simulations?study=' + encodeURIComponent(slug))
       .then(function (r) { return r.json(); })
       .then(function (j) {
         var rows = (j && (j.simulations || j.runs)) || [];
         var latest = rows[0] && (rows[0].run_id || rows[0].id || rows[0].name);
         if (!latest) { alert('No run to reproduce yet for ' + slug + '.'); return; }
-        return fetch('/api/study-reproduce', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({study: slug, run_id: latest}),
-        }).then(function (r) { return r.json(); }).then(function (res) {
+        return apiFetch('POST', '/api/study-reproduce', {study: slug, run_id: latest}).then(function (r) { return r.json(); }).then(function (res) {
           var id = res && res.run_id;
           var msg = id ? ('Reproduce launched — ' + id) : ('Reproduce: ' + ((res && res.error) || 'done'));
           if (typeof _showToast === 'function') _showToast(msg); else alert(msg);
@@ -11463,7 +11336,7 @@
     var setStatus = function(txt) { if (statusEl) statusEl.textContent = txt || ''; };
     btn.disabled = true;
     setStatus('refreshing…');
-    fetch('/api/study-refresh-viz/' + encodeURIComponent(study), {method: 'POST'})
+    apiFetch('POST', '/api/study-refresh-viz/' + encodeURIComponent(study))
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
@@ -11473,7 +11346,7 @@
         var errs = results.filter(function(x) { return x && x.status === 'error'; }).length;
         var ok = results.filter(function(x) { return x && x.status === 'rendered'; }).length;
         // Re-fetch the freshly-stamped charts and rebuild the section body.
-        return fetch('/api/study-charts/' + encodeURIComponent(study))
+        return apiFetch('GET', '/api/study-charts/' + encodeURIComponent(study))
           .then(function(r) { return r.ok ? r.json() : {charts: []}; })
           .then(function(j) {
             var container = document.getElementById('study-' + study + '-charts');
@@ -12890,7 +12763,7 @@
   function _createInvestigation() {
     var srcSel = document.getElementById('create-inv-source');
     if (srcSel) srcSel.innerHTML = '<option value="">— blank composites list, add later —</option>';
-    fetch('/api/composites').then(function(r) { return r.json(); }).then(function(data) {
+    apiFetch('GET', '/api/composites').then(function(r) { return r.json(); }).then(function(data) {
       (data.composites || []).forEach(function(c) {
         if (srcSel) {
           var sopt = document.createElement('option');
@@ -12909,10 +12782,7 @@
   function _submitInvestigationCreate(form) {
     var data = new FormData(form);
     var payload = { name: data.get('name'), composite: data.get('composite'), source: data.get('source') || '' };
-    fetch('/api/study-create', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/study-create', payload).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -12938,7 +12808,7 @@
     // Switch the Investigations page into single-study focus mode: hide the
     // grid + toolbar + chips and let the detail panel take the full width.
     _setInvestigationsFocusMode(true);
-    fetch('/api/investigation/' + encodeURIComponent(name))
+    apiFetch('GET', '/api/investigation/' + encodeURIComponent(name))
       .then(function(r) { return r.json(); })
       .then(function(data) { _renderInvestigationDetail(name, data); })
       .catch(function(err) {
@@ -13205,12 +13075,13 @@
         '<button class="action-btn js-authoring" onclick="_saveObservables()">Save observables</button>' +
         '<div id="inv-observables-status" style="margin-top:8px;font-size:0.9em;color:#555"></div>' +
         '<hr style="margin:20px 0;border:none;border-top:1px solid #eee">' +
-        '<p class="panel-lead">Analyses to run at dispatch time — one <code>v2ecoli.workflow.analysis.' +
-          'ANALYSIS_REGISTRY</code> name per line (e.g. <code>doubling_time_distribution</code>). Translated ' +
+        '<p class="panel-lead">Analyses to run at dispatch time — which of the workspace\'s <code>v2ecoli.' +
+          'workflow.analysis.ANALYSIS_REGISTRY</code> entries to compute. Translated ' +
           'into <code>analysis_options</code> for remote (sms-api) dispatch and the local post-run pipeline ' +
           'alike.</p>' +
-        '<textarea id="inv-analyses-list" rows="3" style="width:100%;font-family:monospace;font-size:0.9em" ' +
-          'placeholder="doubling_time_distribution"></textarea>' +
+        '<div id="inv-analyses-list">' +
+          (window.ProgressTrack ? window.ProgressTrack.loadingHtml('Loading analyses…') : '<p class="empty-state">Loading analyses…</p>') +
+        '</div>' +
         '<button class="action-btn js-authoring" onclick="_saveAnalyses()">Save analyses</button>' +
         '<div id="inv-analyses-status" style="margin-top:8px;font-size:0.9em;color:#555"></div>' +
       '</div>' +
@@ -13224,7 +13095,7 @@
           '<button class="btn-mini js-authoring" style="margin-bottom:8px" onclick="_openAddVizModal(\'' + _esc(name) + '\')">+ Add visualization</button>' +
           vizFiles.map(function(v) {
             return '<h4 style="margin-bottom:4px">' + _esc(v.name) + '</h4>' +
-                   '<iframe class="viz-frame" src="/' + _esc(v.path) + '?ts=' + Date.now() + '"></iframe>';
+                   '<iframe class="viz-frame" src="' + (window.__BASE_PATH__ || '') + '/' + _esc(v.path) + '?ts=' + Date.now() + '"></iframe>';
           }).join('') :
           '<p class="empty-state">No visualizations declared in <code>spec.yaml</code> yet. ' +
             'Click <em>Add visualization</em> to scaffold one, or edit ' +
@@ -13299,13 +13170,9 @@
   }
 
   function _saveOverviewField(invName, key, value) {
-    var body = { investigation: invName, fields: {} };
-    body.fields[key] = value;
-    fetch('/api/investigation-set-overview', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    })
+    var overview = {};
+    overview[key] = value;
+    apiFetch('PATCH', '/api/investigation/' + encodeURIComponent(invName), {overview: overview})
       .then(function(r) {
         if (!r.ok) {
           return r.json().then(function(j) { alert(j.error || 'save failed'); });
@@ -13358,11 +13225,7 @@
     var invName = window._currentInvestigation;
     if (!invName) return;
     var blob = _emitConclusionsBlob();
-    fetch('/api/investigation-set-conclusions', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, markdown: blob}),
-    })
+    apiFetch('PATCH', '/api/investigation/' + encodeURIComponent(invName), {conclusions: blob})
       .then(function(r) {
         if (!r.ok) return r.json().then(function(j) { alert(j.error || 'save failed'); });
         if (typeof _showToast === 'function') _showToast('Saved conclusions');
@@ -13591,11 +13454,7 @@
         observables: fields.observables,
       };
     }
-    fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    })
+    apiFetch('POST', url, body)
       .then(function(r) {
         return r.json().then(function(j) { return {ok: r.ok, body: j}; });
       })
@@ -13622,11 +13481,7 @@
     var invName = window._currentInvestigation;
     if (!invName) return;
     if (!confirm('Remove comparison "' + cmpName + '"?')) return;
-    fetch('/api/investigation-comparison', {
-      method: 'DELETE',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, name: cmpName}),
-    })
+    apiFetch('DELETE', '/api/investigation-comparison', {investigation: invName, name: cmpName})
       .then(function(r) {
         return r.json().then(function(j) { return {ok: r.ok, status: r.status, body: j}; });
       })
@@ -13836,11 +13691,7 @@
         variants: fields.variants,
       };
     }
-    fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    })
+    apiFetch('POST', url, body)
       .then(function(r) {
         return r.json().then(function(j) { return {ok: r.ok, body: j}; });
       })
@@ -13867,11 +13718,7 @@
     var invName = window._currentInvestigation;
     if (!invName) return;
     if (!confirm('Remove group "' + grpName + '"?')) return;
-    fetch('/api/investigation-group', {
-      method: 'DELETE',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, name: grpName}),
-    })
+    apiFetch('DELETE', '/api/investigation-group', {investigation: invName, name: grpName})
       .then(function(r) {
         return r.json().then(function(j) { return {ok: r.ok, status: r.status, body: j}; });
       })
@@ -13917,7 +13764,7 @@
   // ── Investigation Composites tab handlers ─────────────────────────────────
 
   function _loadInvComposites(invName) {
-    fetch('/api/investigation-composites?investigation=' + encodeURIComponent(invName))
+    apiFetch('GET', '/api/investigation-composites?investigation=' + encodeURIComponent(invName))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var sidebar = document.getElementById('inv-composites-sidebar');
@@ -13967,7 +13814,7 @@
 
   function _loadInvCompositeDetail(invName, compName) {
     _renderInvCompositeIntervention(compName);
-    fetch('/api/investigation-composite-doc?investigation=' + encodeURIComponent(invName) +
+    apiFetch('GET', '/api/investigation-composite-doc?investigation=' + encodeURIComponent(invName) +
           '&composite=' + encodeURIComponent(compName))
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -14066,7 +13913,7 @@
       return;
     }
     // Cache miss — fetch and then render.
-    fetch('/api/investigation-composites?investigation=' + encodeURIComponent(invName))
+    apiFetch('GET', '/api/investigation-composites?investigation=' + encodeURIComponent(invName))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var list = (data && data.composites) || [];
@@ -14262,11 +14109,7 @@
       parameter_overrides: paramObj,
       process_overrides: procObj,
     };
-    fetch('/api/investigation-composite-perturb', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    })
+    apiFetch('POST', '/api/investigation-composite-perturb', body)
       .then(function(r) {
         return r.json().then(function(j) { return {ok: r.ok, body: j}; });
       })
@@ -14277,7 +14120,7 @@
         }
         if (typeof _showToast === 'function') _showToast('Saved intervention "' + name + '"');
         // Re-fetch composites so the cache and table reflect the new state.
-        fetch('/api/investigation-composites?investigation=' + encodeURIComponent(invName))
+        apiFetch('GET', '/api/investigation-composites?investigation=' + encodeURIComponent(invName))
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var list = (data && data.composites) || [];
@@ -14296,7 +14139,7 @@
   function _loadInvObservables(invName) {
     // 1. Get composites list, 2. fetch each one's state tree, 3. union store paths,
     // 4. pre-check based on spec.observables.
-    fetch('/api/investigation-composites?investigation=' + encodeURIComponent(invName))
+    apiFetch('GET', '/api/investigation-composites?investigation=' + encodeURIComponent(invName))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var composites = data.composites || [];
@@ -14306,7 +14149,7 @@
           return;
         }
         Promise.all(composites.map(function(c) {
-          return fetch('/api/investigation-state-tree?investigation=' + encodeURIComponent(invName) +
+          return apiFetch('GET', '/api/investigation-state-tree?investigation=' + encodeURIComponent(invName) +
                        '&composite=' + encodeURIComponent(c.name))
             .then(function(r) { return r.json(); })
             .then(function(tree) { return {composite: c.name, nodes: tree.nodes || []}; });
@@ -14393,10 +14236,7 @@
       document.querySelectorAll('#inv-observables-tree input[type=checkbox][data-path]:checked')
         .forEach(function(cb) { paths.push(cb.dataset.path.split('.')); });
     }
-    fetch('/api/investigation-set-observables', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, paths: paths, emit_all: emitAll}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('PATCH', '/api/investigation/' + encodeURIComponent(invName), {observables: paths, emit_all: emitAll}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var status = document.getElementById('inv-observables-status');
         if (!status) return;
@@ -14416,8 +14256,10 @@
   function _loadInvAnalyses(invName) {
     // Pre-fill from the current spec.yaml.analyses[].name — same naive-scrape
     // approach _loadInvObservables already uses for observables, so this
-    // doesn't need a new read endpoint.
-    fetch('/investigations/' + encodeURIComponent(invName) + '/spec.yaml').then(function(r) {
+    // doesn't need a new read endpoint. Selectable options themselves come
+    // from the live /api/visualization-classes registry (item 69) rather
+    // than free text typed from memory.
+    var specNames = fetch('/investigations/' + encodeURIComponent(invName) + '/spec.yaml').then(function(r) {
       return r.ok ? r.text() : '';
     }).then(function(specText) {
       var names = [];
@@ -14428,22 +14270,43 @@
           if (p) names.push(p[1]);
         });
       }
-      var el = document.getElementById('inv-analyses-list');
-      if (el) el.value = names.join('\n');
+      return names;
+    });
+    var analysisClasses = fetch('/api/visualization-classes').then(function(r) { return r.json(); })
+      .then(function(data) { return (data && data.classes || []).filter(function(c) { return c.kind === 'analysis'; }); })
+      .catch(function() { return []; });
+
+    Promise.all([specNames, analysisClasses]).then(function(parts) {
+      var names = parts[0], classes = parts[1];
+      var mount = document.getElementById('inv-analyses-list');
+      if (!mount || !window.ChecklistSelect) return;
+      var known = {};
+      var items = classes.map(function(c) {
+        known[c.name] = true;
+        return { value: c.name, label: c.name, selected: names.indexOf(c.name) >= 0, title: c.doc };
+      });
+      // Never silently drop a name already declared in spec.yaml just
+      // because it's missing from the currently-loaded registry (e.g. a
+      // workspace/branch mismatch) — same honest-degrade convention as the
+      // baseline-composite select (item 69 phase 1).
+      names.forEach(function(n) {
+        if (!known[n]) items.push({ value: n, label: n, selected: true, flagged: true });
+      });
+      window.ChecklistSelect.render(mount, {
+        items: items,
+        filterPlaceholder: 'Filter analyses…',
+        emptyText: 'No analyses registered — install a workspace that provides ANALYSIS_REGISTRY entries.',
+      });
     });
   }
   window._loadInvAnalyses = _loadInvAnalyses;
 
   function _saveAnalyses() {
     var invName = window._currentInvestigation || '';
-    var el = document.getElementById('inv-analyses-list');
-    var names = ((el && el.value) || '').split(/[\n,]/)
-      .map(function(s) { return s.trim(); }).filter(Boolean);
+    var mount = document.getElementById('inv-analyses-list');
+    var names = (mount && window.ChecklistSelect) ? window.ChecklistSelect.selected(mount) : [];
     var analyses = names.map(function(n) { return {name: n, params: {}}; });
-    fetch('/api/study-set-analyses', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, analyses: analyses}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/study-set-analyses', {investigation: invName, analyses: analyses}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var status = document.getElementById('inv-analyses-status');
         if (!status) return;
@@ -14458,7 +14321,7 @@
     var sel = document.getElementById('inv-add-composite-source');
     if (!sel) return;
     sel.innerHTML = '<option value="">— pick a workspace composite —</option>';
-    fetch('/api/composites').then(function(r) { return r.json(); })
+    apiFetch('GET', '/api/composites').then(function(r) { return r.json(); })
       .then(function(data) {
         (data.composites || []).forEach(function(c) {
           var opt = document.createElement('option');
@@ -14485,10 +14348,7 @@
       name: data.get('name'),
       source: data.get('source'),
     };
-    fetch('/api/investigation-composite-add', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/investigation-composite-add', payload).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -14539,10 +14399,7 @@
     };
     if (po) payload.parameter_overrides = po;
     if (procO) payload.process_overrides = procO;
-    fetch('/api/investigation-composite-perturb', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/investigation-composite-perturb', payload).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -14556,10 +14413,7 @@
   window._submitPerturb = _submitPerturb;
 
   function _rebuildComposite(invName, compName) {
-    fetch('/api/investigation-composite-rebuild', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, name: compName}),
-    }).then(function() {
+    apiFetch('POST', '/api/investigation-composite-rebuild', {investigation: invName, name: compName}).then(function() {
       _loadInvComposites(invName);
       _loadInvCompositeDetail(invName, compName);
     });
@@ -14568,10 +14422,7 @@
 
   function _removeComposite(invName, compName) {
     if (!confirm('Remove composite ' + compName + '?')) return;
-    fetch('/api/investigation-composite', {
-      method: 'DELETE', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: invName, name: compName}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('DELETE', '/api/investigation-composite', {investigation: invName, name: compName}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -14652,16 +14503,12 @@
       if (errEl) errEl.textContent = 'Target name must match [a-z0-9_-]+';
       return;
     }
-    fetch('/api/composite-promote-to-catalog', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
+    apiFetch('POST', '/api/composite-promote-to-catalog', {
         investigation: invName,
         variant: variant,
         target_name: target,
         description: desc,
-      }),
-    })
+      })
       .then(function(r) {
         return r.json().then(function(j) { return {status: r.status, body: j}; });
       })
@@ -14716,10 +14563,7 @@
     var detail = document.getElementById('investigation-detail');
     var btn = detail.querySelector('button.action-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Running…'; }
-    fetch('/api/investigation-run', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j, r.status]; }); })
+    apiFetch('POST', '/api/investigation-run', {name: name}).then(function(r) { return r.json().then(function(j) { return [r.ok, j, r.status]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1], code = parts[2];
         // §A5: a v3 investigation is now delegated server-side to the SAME
@@ -14751,10 +14595,7 @@
 
   function _deleteInvestigation(name) {
     if (!confirm('Delete investigation "' + name + '"? This removes its runs.db, visualizations, and spec.yaml.')) return;
-    fetch('/api/investigation-delete', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    }).then(function(r) { return r.json(); }).then(function(j) {
+    apiFetch('POST', '/api/investigation-delete', {name: name}).then(function(r) { return r.json(); }).then(function(j) {
       if (!j.ok) { alert('Delete failed: ' + (j.error || 'unknown')); return; }
       var detail = document.getElementById('investigation-detail');
       if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
@@ -14768,10 +14609,7 @@
 
   function _deleteRun(investigationName, runId) {
     if (!confirm('Delete run ' + runId.slice(-12) + '?')) return;
-    fetch('/api/investigation-run-delete', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: investigationName, run_id: runId}),
-    }).then(function(r) { return r.json(); }).then(function(j) {
+    apiFetch('POST', '/api/investigation-run-delete', {investigation: investigationName, run_id: runId}).then(function(r) { return r.json(); }).then(function(j) {
       if (!j.ok) { alert('Delete failed: ' + (j.error || 'unknown')); return; }
       _openInvestigation(investigationName);
     });
@@ -14780,10 +14618,7 @@
 
   function _clearRuns(investigationName) {
     if (!confirm('Clear ALL runs from ' + investigationName + '? (visualizations will be empty until you re-run)')) return;
-    fetch('/api/investigation-runs-clear', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({investigation: investigationName}),
-    }).then(function(r) { return r.json(); }).then(function(j) {
+    apiFetch('POST', '/api/investigation-runs-clear', {investigation: investigationName}).then(function(r) { return r.json(); }).then(function(j) {
       if (!j.ok) { alert('Clear failed: ' + (j.error || 'unknown')); return; }
       _openInvestigation(investigationName);
     });
@@ -14798,15 +14633,12 @@
     var overrides;
     try { overrides = JSON.parse(edited); }
     catch (e) { alert('Invalid JSON: ' + e); return; }
-    fetch('/api/investigation-run-one', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
+    apiFetch('POST', '/api/investigation-run-one', {
         investigation: investigationName,
         sim_name: simName + '-copy',
         overrides: overrides,
         steps: steps,
-      }),
-    }).then(function(r) { return r.json(); }).then(function(j) {
+      }).then(function(r) { return r.json(); }).then(function(j) {
       if (!j.ok) { alert('Duplicate-run failed: ' + (j.error || 'unknown')); return; }
       // Re-render the investigation; the new run's viz HTML lives at
       // /investigations/<inv>/viz/<run_id>/<name>.html and is discoverable
@@ -14848,9 +14680,9 @@
           return '<figure style="margin:0 0 14px 0">' +
             '<figcaption style="font-size:0.85em;color:#555;margin-bottom:4px">' +
               _esc(f.name) +
-              ' <small><a href="/' + _esc(f.html_path) + '" target="_blank">open ↗</a></small>' +
+              ' <small><a href="' + (window.__BASE_PATH__ || '') + '/' + _esc(f.html_path) + '" target="_blank">open ↗</a></small>' +
             '</figcaption>' +
-            '<iframe src="/' + _esc(f.html_path) + '" sandbox="allow-scripts" ' +
+            '<iframe src="' + (window.__BASE_PATH__ || '') + '/' + _esc(f.html_path) + '" sandbox="allow-scripts" ' +
               'style="width:100%;height:380px;border:1px solid #eee;background:#fff"></iframe>' +
           '</figure>';
         }).join('');
@@ -14868,8 +14700,8 @@
     if (classSel) classSel.innerHTML = '<option value="">— none (description-only) —</option>';
     if (alreadyEl) alreadyEl.textContent = '';
     Promise.all([
-      fetch('/api/visualization-classes').then(function(r) { return r.json(); }),
-      fetch('/api/visualization-instances').then(function(r) { return r.json(); }),
+      apiFetch('GET', '/api/visualization-classes').then(function(r) { return r.json(); }),
+      apiFetch('GET', '/api/visualization-instances').then(function(r) { return r.json(); }),
       fetch('/workspace.yaml').then(function(r) { return r.ok ? r.text() : ''; }),
     ]).then(function(parts) {
       // Filter out Analysis classes — the workspace viz picker only shows Visualization classes.
@@ -14926,8 +14758,8 @@
     // is created once and re-populated each open from the cached spec.
     _ensureAddVizComparisonDropdown();
     Promise.all([
-      fetch('/api/visualization-instances').then(function(r) { return r.json(); }),
-      fetch('/api/visualization-classes').then(function(r) { return r.json(); }),
+      apiFetch('GET', '/api/visualization-instances').then(function(r) { return r.json(); }),
+      apiFetch('GET', '/api/visualization-classes').then(function(r) { return r.json(); }),
     ]).then(function(parts) {
       var instances = (parts[0] && parts[0].instances) || [];
       // Filter out Analysis classes — the add-viz picker only offers Visualization classes.
@@ -15055,10 +14887,7 @@
       address: data.get('address'),
       config: config,
     };
-    fetch('/api/investigation-add-viz', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/investigation-add-viz', payload).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -15066,10 +14895,7 @@
           return;
         }
         closeModal('modal-investigation-add-viz');
-        fetch('/api/investigation-render-viz', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({name: payload.investigation}),
-        }).then(function() {
+        apiFetch('POST', '/api/investigation-render-viz', {name: payload.investigation}).then(function() {
           _openInvestigation(payload.investigation);  // refresh detail panel
         });
       });
@@ -15089,10 +14915,7 @@
       name: data.get('name'),
       description: data.get('description'),
     };
-    fetch('/api/visualization-generate', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/visualization-generate', payload).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         if (!ok) {
@@ -15132,10 +14955,7 @@
   }
 
   function _acceptGeneratedClass(name) {
-    fetch('/api/visualization-accept', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name}),
-    }).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+    apiFetch('POST', '/api/visualization-accept', {name: name}).then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
       .then(function(parts) {
         var ok = parts[0], j = parts[1];
         var statusEl = document.getElementById('viz-generate-status');
@@ -15413,15 +15233,39 @@
     return '';
   }
 
+  // Statuses that mean "not finished" — a run the user just launched and is
+  // actively watching. These ALWAYS pin to the top of the Runs list, regardless
+  // of the column sort: remote list timestamps come from an unreliable bulk
+  // `last_updated` (every GovCloud run shows the same frozen time), so a live
+  // cloud run can't otherwise rise above the wall of old completed runs.
+  var _ACTIVE_RUN_STATUSES = { queued: 1, running: 1, pending: 1, submitted: 1,
+                               in_progress: 1, started: 1, dispatching: 1 };
+  function _isActiveRun(row) {
+    return !!_ACTIVE_RUN_STATUSES[String((row && row.status) || '').toLowerCase()];
+  }
+  function _sortActiveRuns(list) {
+    // Newest dispatch first among the active runs — the remote simulation_id is
+    // monotonic and trustworthy (unlike the frozen timestamp), else fall to time.
+    return list.slice().sort(function (a, b) {
+      var ai = ((a.remote_origin || {}).simulation_id) || 0;
+      var bi = ((b.remote_origin || {}).simulation_id) || 0;
+      if (ai !== bi) return bi - ai;
+      return (b.completed_at || b.started_at || 0) - (a.completed_at || a.started_at || 0);
+    });
+  }
+
   function _sortSimRows(rows, key, dir) {
-    if (!key) return rows;
-    const s = rows.slice().sort(function (a, b) {
+    var active = rows.filter(_isActiveRun);
+    var rest = rows.filter(function (r) { return !_isActiveRun(r); });
+    if (!key) return _sortActiveRuns(active).concat(rest);  // backend order for the rest
+    var s = rest.slice().sort(function (a, b) {
       var va = _simSortValue(a, key), vb = _simSortValue(b, key);
       if (va < vb) return -1;
       if (va > vb) return 1;
       return 0;
     });
-    return dir === 'desc' ? s.reverse() : s;
+    var sortedRest = dir === 'desc' ? s.reverse() : s;
+    return _sortActiveRuns(active).concat(sortedRest);
   }
 
   function _onSimHeaderClick(th) {
@@ -15627,7 +15471,14 @@
             'onclick="_initSimulations()">Retry</button></span>';
           return;
         }
-        window._simRows = data.simulations || [];
+        // Never shrink back to the local-only set once the remote-enriched rows
+        // have loaded: a quiet auto-refresh's fast local-only fetch must not clobber
+        // the (slow) GovCloud rows while they're still valid — that collapse-to-local
+        // then re-fetch was the visible flap.
+        var _incoming = data.simulations || [];
+        if (!window._simRemoteLoaded || _incoming.length >= (window._simRows || []).length) {
+          window._simRows = _incoming;
+        }
         // Scope target, most-specific first: the investigation currently open
         // in the detail view (_currentIsetSlug, set by _openInvestigationDetail),
         // else the git-branch investigation slug, else whatever investigation the
@@ -15638,8 +15489,10 @@
         _populateSimFilters();
         _applySimFilter();
         _pollNonTerminalRemoteRuns();
-        // Phase 2 — merge in the remote runs (slow) in the background.
-        if (!snapshot) _loadRemoteSimsAsync();
+        // Phase 2 — merge in the remote runs (slow ~100s) in the background.
+        // On a quiet auto-refresh this only re-fires after a backoff and never
+        // while one is in flight, so the 15s poll can't restart the slow fetch.
+        if (!snapshot) _maybeLoadRemoteSims(quiet);
       })
       .catch(function (err) {
         if (quiet) return;
@@ -15653,19 +15506,40 @@
   // Phase 2 of the Runs load: fetch local+remote (the second call includes the
   // GovCloud runs, deduped server-side) and merge into the table. Best-effort:
   // a down tunnel leaves the local-only view in place.
+  // Don't re-pull the slow GovCloud list more than ~every 3 min on the quiet
+  // auto-refresh; the deployed /simulations endpoint can take ~100s, so a 15s
+  // poll firing it repeatedly never settles.
+  var REMOTE_REFRESH_MS = 180000;
+
+  function _maybeLoadRemoteSims(quiet) {
+    // First load / explicit refresh: always. Quiet auto-refresh: only after the
+    // backoff, and never while a fetch is already in flight (guard below).
+    if (!quiet || !window._simRemoteLoaded ||
+        (Date.now() - (window._simLastRemoteLoad || 0)) > REMOTE_REFRESH_MS) {
+      _loadRemoteSimsAsync();
+    }
+  }
+
   function _loadRemoteSimsAsync() {
+    // Dedupe: the remote fetch is slow (~100s). Never start a second one while
+    // one is in flight — overlapping fetches are what made the page flap.
+    if (window._simRemoteInFlight) return;
+    window._simRemoteInFlight = true;
     _setSimRemoteStatus('loading');
     window.DataSource.loadSimulations({ includeRemote: true })
       .then(function (data) {
+        window._simRemoteInFlight = false;
         if (!data || data.error) { _setSimRemoteStatus('error'); return; }
         var all = data.simulations || [];
         if (all.length >= (window._simRows || []).length) window._simRows = all;
+        window._simRemoteLoaded = true;
+        window._simLastRemoteLoad = Date.now();
         _setSimRemoteStatus('done');
         _populateSimFilters();
         _applySimFilter();
         _pollNonTerminalRemoteRuns();
       })
-      .catch(function () { _setSimRemoteStatus('error'); });
+      .catch(function () { window._simRemoteInFlight = false; _setSimRemoteStatus('error'); });
   }
 
   function _setSimRemoteStatus(state) {
@@ -15761,7 +15635,7 @@
       if (checked >= 20) continue;  // defensive cap, not expected to bind in practice
       checked++;
       (function (host, id) {
-        fetch('/api/remote-run-poll?simulation_id=' + encodeURIComponent(id))
+        apiFetch('GET', '/api/remote-run-poll?simulation_id=' + encodeURIComponent(id))
           .then(function (r) { return r.json(); })
           .then(function (body) {
             var phase = body && body.phase;
@@ -15873,11 +15747,7 @@
     // Replace the confirm handler each time to bind the current run_id.
     confirm.onclick = function () {
       confirm.disabled = true;
-      fetch('/api/simulation-run', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ run_id: run_id }),
-      }).then(function (r) { return r.json().then(function (d) {
+      apiFetch('DELETE', '/api/simulation-run', { run_id: run_id }).then(function (r) { return r.json().then(function (d) {
         return { ok: r.ok, status: r.status, body: d };
       }); }).then(function (res) {
         confirm.disabled = false;
@@ -16080,12 +15950,12 @@
 
     function tick() {
       Promise.all([
-        fetch(_api('/api/composite-run/' + encodeURIComponent(run_id) + '/status'))
+        apiFetch('GET', '/api/composite-run/' + encodeURIComponent(run_id) + '/status')
           .then(function(r) {
             if (r.status === 404) return { _gone: true };
             return r.json();
           }),
-        fetch(_api('/api/composite-run/' + encodeURIComponent(run_id)))
+        apiFetch('GET', '/api/composite-run/' + encodeURIComponent(run_id))
           .then(function(r) { return r.ok ? r.json() : { trajectory: [] }; })
           .catch(function() { return { trajectory: [] }; }),
       ]).then(function(parts) {
@@ -16129,7 +15999,7 @@
   // -------------------------------------------------------------------------
 
   function _openPRDialog() {
-    fetch('/api/state').then(function (r) { return r.json(); }).then(function (state) {
+    apiFetch('GET', '/api/state').then(function (r) { return r.json(); }).then(function (state) {
       var branch = (state && state.active_branch) || '';
       var base = (state && state.base) || 'main';
       var titleField = document.querySelector('#form-open-pr input[name=title]');
@@ -16220,7 +16090,7 @@
       // Fetch composite diff in parallel so the "Model changes" section can
       // include actual file paths + line counts. Best-effort; renders without
       // the section if the fetch fails or returns no model-code changes.
-      fetch('/api/work-composite-diff').then(function (r) { return r.ok ? r.json() : {changes: []}; })
+      apiFetch('GET', '/api/work-composite-diff').then(function (r) { return r.ok ? r.json() : {changes: []}; })
         .catch(function () { return {changes: []}; })
         .then(function (diff) {
           var modelChanges = (diff && diff.changes) || [];
@@ -16351,14 +16221,11 @@
           if (!html) return null;
           var filename = 'investigation-' + iset.name + '.html';
           setStatus('Committing report…');
-          return fetch('/api/work-attach-report', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
+          return apiFetch('POST', '/api/work-attach-report', {
               filename: filename,
               html: html,
               commit_message: 'docs(report): refresh investigation report for PR',
-            }),
-          }).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); });
+            }).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); });
         });
     } else {
       attachPromise = Promise.resolve(null);
@@ -16373,10 +16240,7 @@
         }
       }
       setStatus('Creating PR…');
-      return fetch('/api/work-create-pr', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(prBody),
-      }).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); });
+      return apiFetch('POST', '/api/work-create-pr', prBody).then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); });
     })
     .then(function (pair) {
       var ok = pair[0], j = pair[1];
@@ -16443,10 +16307,7 @@
     var btn = document.getElementById('btn-commit-push');
     if (btn) { btn.disabled = true; btn.textContent = 'Pushing…'; }
     function _reset() { if (btn) { btn.disabled = false; btn.textContent = 'Commit + Push'; } }
-    fetch('/api/branch/push', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg }),
-    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    apiFetch('POST', '/api/branch/push', { message: msg }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         _reset();
         if (res.ok) {
@@ -16515,7 +16376,7 @@
   }
 
   function _refreshGitStatus() {
-    fetch('/api/git-status').then(function (r) { return r.json(); }).then(function (s) {
+    apiFetch('GET', '/api/git-status').then(function (r) { return r.json(); }).then(function (s) {
       // Legacy single-string box (still populated for any consumer that
       // reads it). The GitHub-tab settings page renders the same data into
       // individual rows via _renderGitStatusRows below.
@@ -16626,7 +16487,7 @@
       var a = document.getElementById('viv-gh-org-retry');
       if (a) a.onclick = function (e) { e.preventDefault(); _loadGithubOrgs(); };
     }
-    fetch('/api/auth/github/orgs').then(function (r) {
+    apiFetch('GET', '/api/auth/github/orgs').then(function (r) {
       if (r.status === 401) {
         sel.innerHTML = '<option value="">Sign in to load orgs…</option>';
         if (hint) hint.textContent = 'Sign in above to pick a default org.';
@@ -16773,7 +16634,7 @@
     if (_populateReadinessPanels._cache) { _apply(_populateReadinessPanels._cache); return; }
     if (_populateReadinessPanels._pending) return;
     _populateReadinessPanels._pending = true;
-    fetch('/api/report-lint')
+    apiFetch('GET', '/api/report-lint')
       .then(function (r) { return r.ok ? r.json() : { findings: [] }; })
       .then(function (j) {
         var byStudy = {};
