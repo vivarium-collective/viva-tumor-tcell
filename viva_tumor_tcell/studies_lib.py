@@ -86,7 +86,7 @@ def persist_run(study_dir, core, doc, n_steps, name, interval=60.0,
     from pathlib import Path
     from process_bigraph import Composite
     try:
-        from pbg_emitters.sqlite_emitter import (
+        from viva_emitters.sqlite_emitter import (
             SQLiteEmitter, save_simulation_metadata)
     except ImportError:  # legacy location
         from process_bigraph.emitter import SQLiteEmitter  # type: ignore
