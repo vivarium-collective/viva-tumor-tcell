@@ -67,7 +67,26 @@ MOLECULES = ('IFNg', 'tumor_debris')
 
 def register_types(core):
     """Register ``tumor_tcell_agent`` as a normal object schema (NOT an opaque
-    Node) so ``map[tumor_tcell_agent]`` resolves with a known field structure."""
+    Node) so ``map[tumor_tcell_agent]`` resolves with a known field structure.
+
+    ``AGENT_SCHEMA`` references ``set_float`` / ``map[set_float]`` (viva-munk's
+    replace-apply float). Via :func:`viva_tumor_tcell.core.build_core` viva-munk's
+    ``core_import`` has already registered it — but bigraph-schema's package
+    auto-discovery can call this ``register_types`` STANDALONE, in a
+    non-deterministic order, before viva-munk's types are on the core. Then
+    ``core.register_type('tumor_tcell_agent', …)`` fails with
+    ``unable to parse type "map[set_float]"``. So register the viva-munk positive
+    types (which include ``set_float``) first, idempotently, so this works
+    regardless of call order."""
+    try:
+        from viva_munk.types.positive import positive_types as _munk_positive
+        for _name, _schema in _munk_positive.items():
+            try:
+                core.register_type(_name, _schema)
+            except Exception:  # noqa: BLE001 — already registered (build_core path)
+                pass
+    except Exception:  # noqa: BLE001 — viva-munk unavailable; fall through
+        pass
     core.register_type('tumor_tcell_agent', dict(AGENT_SCHEMA))
     return core
 
