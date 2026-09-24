@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-tumor-tcell"
-version = "0.1.0"
+version = "0.1.1"
 description = "Process-bigraph port of the tumor-tcell tumor-microenvironment ABM (viva-munk physics)"
 readme = "README.md"
 license = {text = "MIT"}
@@ -33,3 +33,15 @@ Issues = "https://github.com/vivarium-collective/viva-tumor-tcell/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["viva_tumor_tcell"]
+
+# Ship this module's workspace content INSIDE the installed package, so a
+# wheel/PyPI install exposes its studies + investigation read-only in the
+# vivarium-workbench (via lib/federation.linked_workspaces' installed-module
+# discovery). Without this, a wheel install surfaces only the composites and the
+# studies list-but-fail-to-open ("Study not found"). The workspace.yaml lands at
+# viva_tumor_tcell/workspace.yaml (the federation root), with studies/ and
+# investigations/ as its default-layout subdirs.
+[tool.hatch.build.targets.wheel.force-include]
+"workspace.yaml" = "viva_tumor_tcell/workspace.yaml"
+"studies" = "viva_tumor_tcell/studies"
+"investigations" = "viva_tumor_tcell/investigations"
