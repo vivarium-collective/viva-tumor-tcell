@@ -6,11 +6,15 @@ workbench's Composite Explorer calls ``render_results(composite)`` at the end,
 which finds every embedded Visualization instance and calls its ``render()`` —
 the resulting HTML is what the Explorer's **Visualizations** tab shows.
 
-They are stateful (legacy streaming contract): each tick they accumulate the
-``cells`` map (and ``fields``) into their own buffers, and ``update()`` returns
-the freshly rendered HTML. They reuse the same Plotly figure builders as the
-study figures (:mod:`viva_tumor_tcell.viz`), so the in-Explorer figures match
-the paper's colors and forms.
+They are stateful (new-style contract): each tick they accumulate the ``cells``
+map (and ``fields``) into their own buffers via ``accumulate()``, and the final
+HTML is built once at end-of-run by ``render()`` (invoked by ``render_results``).
+Rendering a full Plotly figure to HTML on *every* tick — the old streaming
+contract — retained millions of objects across a long-lived worker, so a
+generational GC pass eventually stalled a tick for minutes; accumulate/render-once
+keeps memory flat. They reuse the same Plotly figure builders as the study
+figures (:mod:`viva_tumor_tcell.viz`), so the in-Explorer figures match the
+paper's colors and forms.
 
 Three views, wired into every composite via :func:`viz_steps`:
 
@@ -69,14 +73,13 @@ class PopulationTimeseries(Visualization):
     def inputs(self):
         return {'cells': 'map[tumor_tcell_agent]', 'time': 'float'}
 
-    def update(self, state):
+    def accumulate(self, state):
         cells = state.get('cells') or {}
         self._times.append(_time_h(state, self._step))
         self._step += 1
         self._pops.append(population_counts({'cells': cells}))
-        return {'html': self._render()}
 
-    def _render(self):
+    def render(self):
         if not self._pops:
             return _empty('No population data yet.')
         last = self._pops[-1]
@@ -126,7 +129,7 @@ class PhenotypeFractions(Visualization):
     def inputs(self):
         return {'cells': 'map[tumor_tcell_agent]', 'time': 'float'}
 
-    def update(self, state):
+    def accumulate(self, state):
         cells = (state.get('cells') or {}).values()
         self._times.append(_time_h(state, self._step))
         self._step += 1
@@ -136,9 +139,8 @@ class PhenotypeFractions(Visualization):
             sum(c.get('cell_state') == 'PDL1p' for c in tum) / len(tum) if tum else 0.0)
         self._pd1p.append(
             sum(c.get('cell_state') == 'PD1p' for c in tc) / len(tc) if tc else 0.0)
-        return {'html': self._render()}
 
-    def _render(self):
+    def render(self):
         if not self._times:
             return _empty('No phenotype data yet.')
         series = {'PDL1+ tumor fraction': self._pdl1p}
