@@ -632,16 +632,6 @@ spatial microenvironment.
   </div>
 
   
-  <div class="overview-section" id="study-analyses-section">
-    <h3>Analyses to run <span class="muted" style="font-size:0.85em;font-weight:normal">— which of the workspace's <code>ANALYSIS_REGISTRY</code> entries to compute on dispatch</span></h3>
-    <div id="study-analyses-list" data-study="killing-assay-cytotoxicity">
-      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading analyses…</span></div>
-    </div>
-    <div style="margin-top:8px">
-      <button class="action-btn" type="button" onclick="_saveStudyAnalyses()">Save analyses</button>
-      <span id="study-analyses-status" style="margin-left:8px;font-size:0.9em;color:#555"></span>
-    </div>
-  </div>
 
   
   
@@ -750,6 +740,18 @@ spatial microenvironment.
 
 
 <section class="study-tab-panel" data-kind="analyses" id="panel-analyses" hidden>
+
+  
+  <div class="overview-section" id="study-analyses-section">
+    <h3>Analyses to run <span class="muted" style="font-size:0.85em;font-weight:normal">— which of the workspace's <code>ANALYSIS_REGISTRY</code> entries to compute on dispatch</span></h3>
+    <div id="study-analyses-list" data-study="killing-assay-cytotoxicity">
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading analyses…</span></div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="action-btn" type="button" onclick="_saveStudyAnalyses()">Save analyses</button>
+      <span id="study-analyses-status" style="margin-left:8px;font-size:0.9em;color:#555"></span>
+    </div>
+  </div>
 
 <div class="overview-section" id="analyses-results-section">
   <h2>Analyses</h2>
@@ -1254,7 +1256,7 @@ expect:  {"of": "mean cytotoxicity \u003e 0", "op": "positive"}</pre>
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "7e82b3ecb7c807473a7e2ff9849cf4513acbfcf6", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/7e82b3ecb7c807473a7e2ff9849cf4513acbfcf6", "branch": "main", "generated_at": "2026-09-25 17:51 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "d5e200a084a225ab7a80b49ffb6ca4e84f04e85c", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/d5e200a084a225ab7a80b49ffb6ca4e84f04e85c", "branch": "main", "generated_at": "2026-09-28 13:44 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "killing-assay-cytotoxicity";
