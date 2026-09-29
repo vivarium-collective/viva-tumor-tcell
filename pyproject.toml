@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-tumor-tcell"
-version = "0.1.2"
+version = "0.1.3"
 description = "Process-bigraph port of the tumor-tcell tumor-microenvironment ABM (viva-munk physics)"
 readme = "README.md"
 license = {text = "MIT"}
