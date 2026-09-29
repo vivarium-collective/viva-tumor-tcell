@@ -194,6 +194,11 @@ class SpatialLayout(Visualization):
     def accumulate(self, state):
         cfg = self.config or {}
         field = cfg.get('field', 'IFNg')
+        # process-bigraph re-fires a Step once per upstream write to `cells`, so
+        # accumulate runs ~2x per simulated tick; keep one frame per time value.
+        t = state.get('time')
+        if t is not None and self._frames and self._frames[-1]['time'] == float(t):
+            return
         cells = state.get('cells') or {}
         fields = state.get('fields') or {}
         # keep a compact snapshot: only what the figure needs
@@ -204,16 +209,24 @@ class SpatialLayout(Visualization):
             frame_cells[cid] = {
                 'cell_type': c.get('cell_type'),
                 'cell_state': c.get('cell_state'),
-                'location': list(c.get('location', (0.0, 0.0))),
+                'location': tuple(c.get('location', (0.0, 0.0))),
                 'radius': float(c.get('radius', 5.0) or 5.0),
             }
         arr = fields.get(field)
         frame_field = {}
         if arr is not None:
             import numpy as np
-            frame_field[field] = np.asarray(arr, dtype=float).tolist()
-        self._frames.append({'time': self._step * TIMESTEP,
-                             'cells': frame_cells, 'fields': frame_field})
+            # Keep a compact ndarray, NOT .tolist(): the nested Python list
+            # retained ~n_bins^2 float objects per frame (~1e6 live objects over a
+            # 300-step run), so every generational (gen-2) GC pass had to traverse
+            # the whole mountain and eventually stalled a tick mid-run — or the
+            # end-of-run render — for minutes on a long-lived worker. This is the
+            # residual of the PR #8 GC hang (which only moved the Plotly steps).
+            # spatial_gif_html already wraps the field in np.asarray, so an ndarray
+            # frame needs no change there.
+            frame_field[field] = np.asarray(arr, dtype=np.float32)
+        tval = float(t) if t is not None else self._step * TIMESTEP
+        self._frames.append({'time': tval, 'cells': frame_cells, 'fields': frame_field})
         self._step += 1
 
     def render(self):
