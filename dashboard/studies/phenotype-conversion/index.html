@@ -628,7 +628,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
   
   <div id="model-composite-cards" class="model-composite-cards" data-study="phenotype-conversion"
        data-study-config="">
-    <p class="muted" style="font-size:0.85em;margin:0">Loading composite card(s)…</p>
+    <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading composite card(s)…</span></div>
   </div>
 
   
@@ -673,7 +673,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
       
       
       <div class="model-config-mount" style="margin-top:8px">
-        <p class="muted" style="font-size:0.85em;margin:0">Loading configuration…</p></div>
+        <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading configuration…</span></div></div>
       
       
       
@@ -709,7 +709,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
 
 <div class="overview-section" id="simulations-section">
   <h2>Simulations</h2>
-  <div id="study-sim-table" style="overflow-x:auto"><p class="muted" style="margin:0">Loading…</p></div>
+  <div id="study-sim-table" style="overflow-x:auto"><div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading simulations…</span></div></div>
   <div id="study-run-detail" style="margin-top:14px"></div>
 </div>
 
@@ -725,7 +725,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
   <h4>Latest run preview</h4>
   <p class="muted" style="font-size:0.9em">Per-store sparkline + first/last/min/max from the most recent run's emitted trajectory. This is a downsampled PREVIEW, not the full data — use the per-store or Download-all links for the complete arrays.</p>
   <div id="results-preview" data-study="phenotype-conversion">
-    <p class="empty-message">Loading results preview…</p>
+    <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading results preview…</span></div>
   </div>
 
   <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:22px">
@@ -733,7 +733,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
     <button type="button" id="raw-data-download-all" class="btn-mini" style="display:none"
             onclick="_downloadAllRawExports()">⬇ Download all raw data</button>
   </div>
-  <div id="raw-data-list"><p class="empty-message">Loading runs…</p></div>
+  <div id="raw-data-list"><div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading runs…</span></div></div>
 </div>
 
 </section>
@@ -763,7 +763,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
        href="/api/study-analysis-zip?study=phenotype-conversion">Download all (.zip)</a>
   </div>
   <div id="data-files" data-study="phenotype-conversion">
-    <p class="empty-message">Loading result files…</p>
+    <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading result files…</span></div>
   </div>
 </div>
 
@@ -784,7 +784,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
     <code>lib/emitters.py</code> and this study's (or the workspace's)
     <code>runtime.default_emitter</code>.</p>
     <div id="readouts-emitter" data-study="phenotype-conversion">
-      <p class="empty-message">Loading emitter configuration…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading emitter configuration…</span></div>
     </div>
 
     <h4>Emitted paths</h4>
@@ -796,7 +796,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
     <div id="readouts-download" style="margin:0 0 16px 0"></div>
 
     <div id="readouts-table" data-study="phenotype-conversion">
-      <p class="empty-message">Loading readouts from the composite emit plan…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading readouts from the composite emit plan…</span></div>
     </div>
 
     <h4>Outputs &amp; shapes</h4>
@@ -804,7 +804,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
     <code>(n_steps, …)</code>, units, and a best-effort byte estimate for each emitted
     leaf.</p>
     <div id="readouts-shapes" data-study="phenotype-conversion">
-      <p class="empty-message">Loading output shapes…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading output shapes…</span></div>
     </div>
 
     
@@ -831,7 +831,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
     </div>
     
 
-    <div id="native-gallery-panel" class="figure-mount"><p class="empty-message">Loading figures…</p></div>
+    <div id="native-gallery-panel" class="figure-mount"><div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading figures…</span></div></div>
 
     
     
@@ -959,7 +959,7 @@ does at larger scale — see efficacy-at-scale), so it is reported honestly here
   
 
   
-  <div class="tests-gate-summary" id="tests-gate-summary"><p class="empty-message">Loading gate summary…</p></div>
+  <div class="tests-gate-summary" id="tests-gate-summary"><div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading gate summary…</span></div></div>
 
   
 
@@ -1037,20 +1037,20 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
 
   <div class="checks-band">
     <div class="check-group check-group-sufficiency" id="audit-sufficiency" data-check-group="sufficiency">
-      <p class="empty-message">Loading sufficiency checks…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading sufficiency checks…</span></div>
     </div>
 
     <div class="check-group check-group-quality" id="check-group-quality" data-check-group="quality" style="margin-top:16px">
-      <p class="empty-message">Loading quality checks…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading quality checks…</span></div>
     </div>
 
     <div class="check-group check-group-reproducibility" id="check-group-reproducibility" data-check-group="reproducibility" style="margin-top:16px">
-      <p class="empty-message">Loading reproducibility checks…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading reproducibility checks…</span></div>
     </div>
 
     
     <div class="check-group check-group-sourcing" id="audit-sourcing" data-check-group="sourcing" style="margin-top:16px">
-      <p class="empty-message">Loading sourcing…</p>
+      <div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading sourcing…</span></div>
     </div>
   </div>
 </section>
@@ -1060,7 +1060,7 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
   <h2>Build</h2>
   <p class="muted" style="margin:0 0 12px 0"><strong>Was it earned?</strong> The agentic model-building loop that iterated the model to clear the bar — the draft, the frozen tests, the iteration-by-iteration trajectory, and the result (or an honest give-up).</p>
 
-  <div id="build-loop-state"><p class="empty-message">Loading loop provenance…</p></div>
+  <div id="build-loop-state"><div class="viv-loading"><span class="viv-loading-spin" aria-hidden="true"></span><span>Loading loop provenance…</span></div></div>
 </section>
 
 <section class="study-tab-panel" data-kind="conclusions" id="panel-conclusions" hidden>
@@ -1188,7 +1188,7 @@ expect:  {"of": "IFNg \u003e 0 in 6/6 with T; 0/6 without", "op": "positive"}</p
 </section>
 
 </main>
-<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "9935b7f216157f981e0542a8466b31f8a5d723fc", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/9935b7f216157f981e0542a8466b31f8a5d723fc", "branch": "main", "generated_at": "2026-09-29 16:43 UTC"} };</script>
+<script>window.__DASH_CONFIG__ = { mode: "snapshot", interactiveUrl: "https://github.com/vivarium-collective/viva-tumor-tcell", basePath: "/viva-tumor-tcell/dashboard", inputsDownloadBase: "https://github.com/vivarium-collective/viva-tumor-tcell/raw/main", provenance: {"repo_slug": "vivarium-collective/viva-tumor-tcell", "repo_url": "https://github.com/vivarium-collective/viva-tumor-tcell", "commit": "5b8c8369a3c36657bc56171aff205c62d9b8a5de", "commit_url": "https://github.com/vivarium-collective/viva-tumor-tcell/commit/5b8c8369a3c36657bc56171aff205c62d9b8a5de", "branch": "main", "generated_at": "2026-10-02 03:00 UTC"} };</script>
 <script src="/viva-tumor-tcell/dashboard/assets/data-source.js"></script>
 <script>
 window._studyName = "phenotype-conversion";
@@ -1317,6 +1317,7 @@ window._seedFollowupProposal = _seedFollowupProposal;
 <script src="/viva-tumor-tcell/dashboard/assets/loom-embed.js"></script>
 <script src="/viva-tumor-tcell/dashboard/assets/composite-card.js"></script>
 <script src="/viva-tumor-tcell/dashboard/assets/checklist-select.js"></script>
+<script src="/viva-tumor-tcell/dashboard/assets/progress-track.js"></script>
 <script src="/viva-tumor-tcell/dashboard/assets/study-detail.js"></script>
 <script>
 // Re-assert the refresh-aware seed handlers AFTER study-detail.js (which
