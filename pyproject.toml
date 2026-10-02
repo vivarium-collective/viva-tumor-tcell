@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "viva-tumor-tcell"
-version = "0.1.4"
+version = "0.1.5"
 description = "Process-bigraph port of the tumor-tcell tumor-microenvironment ABM (viva-munk physics)"
 readme = "README.md"
 license = {text = "MIT"}
@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "bigraph-schema>=0.0.60",
-    "process-bigraph",
+    "process-bigraph>=1.8.5",
     "viva-munk",
     "numpy",
     "scipy",
