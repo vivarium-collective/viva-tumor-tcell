@@ -92,7 +92,15 @@ class DiffusionField(Process):
     def update(self, state, interval):
         timestep = float(interval)
         cells = state['cells']
-        original = {m: np.array(state['fields'][m], dtype=float) for m in self.molecules}
+        # `molecules` defaults to ['IFNg'] but inputs() declares `fields` as an
+        # open map, so a bare default-filled state (standalone Registry run, no
+        # composite wiring) has `fields == {}` with no molecule grid. Fall back
+        # to a zero grid per molecule so the step runs and returns a (zero)
+        # delta instead of KeyError'ing; in a real composite the grids are
+        # always present, so this is a no-op there.
+        fields_in = state.get('fields') or {}
+        original = {m: np.array(fields_in.get(m, np.zeros(self.n_bins)), dtype=float)
+                    for m in self.molecules}
         fields = {m: original[m].copy() for m in self.molecules}
 
         # 1. deposit exchange counts -> concentration into the cell's bin

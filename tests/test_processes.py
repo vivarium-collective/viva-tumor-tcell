@@ -122,6 +122,19 @@ def test_field_deposits_diffuses_decays_samples(core):
     assert out['cells']['u']['exchange']['IFNg'] < 0          # exchange reset (delta)
 
 
+def test_field_runs_standalone_with_unpopulated_fields(core):
+    """Regression: a bare default-input run (workbench Registry per-process Run)
+    fills `fields` as an empty map, but molecules defaults to ['IFNg'] — the
+    step must fall back to a zero grid and return a (zero) delta, not KeyError."""
+    f = DiffusionField(config={}, core=core)
+    state = core.fill(f.inputs(), {})
+    assert state['fields'] == {}                               # nothing to populate
+    out = f.update(state, 1.0)
+    assert 'IFNg' in out['fields']                             # zero grid synthesized
+    assert np.asarray(out['fields']['IFNg']).shape == (20, 20)
+    assert float(np.max(np.abs(out['fields']['IFNg']))) == 0.0  # zero delta, no cells
+
+
 # ---------------------------------------------------------------- physics
 def test_physics_detects_contact_and_exchanges_ligands(core):
     ph = TumorTcellPhysics(config={'bounds_x': 120.0, 'bounds_y': 120.0,

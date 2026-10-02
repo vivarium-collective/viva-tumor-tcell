@@ -3,7 +3,7 @@
 Collisions are provided by viva-munk; the tumor/T-cell biology, IFNg field, and
 neighbor-exchange are ported faithfully from the vivarium-1.0 source.
 """
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 from .processes import (
     TumorCellProcess, TCellProcess, TumorTcellPhysics, DiffusionField)
