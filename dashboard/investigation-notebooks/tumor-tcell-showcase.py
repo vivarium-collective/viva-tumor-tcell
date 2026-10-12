@@ -64,8 +64,8 @@ if _env and Path(_env).is_dir():
     REPO = Path(_env)
 if REPO is None:
     REPO = _find_repo_root(Path.cwd().resolve())
-if REPO is None and Path('/home/runner/work/viva-tumor-tcell/viva-tumor-tcell').is_dir():
-    REPO = Path('/home/runner/work/viva-tumor-tcell/viva-tumor-tcell')
+if REPO is None and Path('/Users/eranagmon/code/viva-tumor-tcell').is_dir():
+    REPO = Path('/Users/eranagmon/code/viva-tumor-tcell')
 if REPO is None:
     REPO = Path.cwd()
 sys.path.insert(0, str(REPO))
@@ -127,13 +127,95 @@ def describe_spec(spec):
     print("\nfull editable spec dict:")
     print(_json.dumps(spec, indent=2, default=str))
 
+def materialize_composite(spec_id, overrides=None):
+    """Build a composite into an editable payload {name, description,
+    parameters, state, _overrides, _id}. Works for @composite_generator
+    functions via the process-bigraph registry (the common case); ``state``
+    is the built document (process nodes at top level)."""
+    import importlib
+    from process_bigraph.composite_generator import (
+        _REGISTRY, apply_core_extensions, build_generator)
+    try:
+        from process_bigraph.composite_generator import discover_generators
+        discover_generators()
+    except Exception:
+        pass
+    entry = _REGISTRY.get(spec_id)
+    if entry is None:
+        # editable installs are invisible to packages_distributions, so
+        # discover alone can miss them — prime the module the id names.
+        try:
+            importlib.import_module(spec_id.rsplit('.', 1)[0])
+            from process_bigraph.composite_generator import discover_generators as _dg
+            _dg()
+        except Exception:
+            pass
+        entry = _REGISTRY.get(spec_id)
+    if entry is None:
+        raise KeyError('composite not registered: ' + repr(spec_id))
+    params = dict(entry.parameters or {})
+    ov = {k: (v.get('default') if isinstance(v, dict) else None)
+          for k, v in params.items()}
+    if overrides:
+        ov.update({k: val for k, val in overrides.items() if k in params})
+    _c = apply_core_extensions(entry, core)
+    try:
+        doc = build_generator(entry, ov or None, core=_c)
+    except TypeError:
+        doc = entry.func(_c, **(ov or {}))
+    return {'name': entry.name, 'description': entry.description,
+            'parameters': params, 'state': doc, '_overrides': ov, '_id': spec_id}
+
 import base64 as _b64, pathlib as _pl
-def _render_one(address, config, runs_db, study_yaml):
-    """Generic figure renderer (no workspace render_study_viz.py):
-    resolve an ``image:<relpath>`` visualization to displayable HTML,
-    relative to the study directory."""
+_STATIC_VIZ_SCHEMES = ('image:', 'file:', 'gif:', 'png:', 'svg:', 'jpg:', 'jpeg:')
+def _render_viz_process(address, config):
+    """Render a Visualization process/step (e.g. ``local:<Class>``) to
+    HTML: wrap it as a one-step composite and run it once — the viz writes
+    Plotly HTML to its ``html`` output port. Mirrors the workbench's own
+    env-worker viz path. Self-running vizes need no run data."""
+    from process_bigraph import Composite
+    _doc = {
+        'inputs_store': {}, 'output_store': '',
+        'visualization': {
+            '_type': 'step', 'address': address,
+            'config': {k: v for k, v in (config or {}).items()
+                       if k not in ('inputs_map', 'sources')},
+            'inputs': {}, 'outputs': {'html': ['output_store']},
+        },
+    }
+    _comp = Composite({'state': _doc}, core=core)
+    _comp.run(1)
+    _html = _comp.state.get('output_store')
+    if isinstance(_html, dict):
+        _html = _html.get('value') or _html.get('_value') or ''
+    return _html if isinstance(_html, str) else ''
+def _render_one(address, config, runs_db, study_yaml, overrides=None):
+    """Generic figure renderer (no workspace render_study_viz.py).
+    A static ``image:``/``file:`` (or bare-path) address embeds the file;
+    any other address (``local:<VizProcess>``) is run as a Visualization
+    and its HTML returned. ``overrides`` (the composite's edited parameter
+    dict) is merged into the viz config first so a self-running figure
+    reflects edited parameters; a viz that does not accept those keys
+    falls back to the base config."""
     addr = str(address or '')
-    for _scheme in ('image:', 'file:', 'gif:', 'png:', 'svg:', 'jpg:', 'jpeg:'):
+    _head = addr.split('/', 1)[0]
+    _is_static = (not addr) or (':' not in _head) or addr.startswith(_STATIC_VIZ_SCHEMES)
+    if not _is_static:
+        if core is None:
+            return f'<p style="color:#b91c1c">no core to render {address}</p>'
+        _base = {k: v for k, v in (config or {}).items()}
+        _tries = ([{**_base, **overrides}] if overrides else []) + [_base]
+        _err = ''
+        for _cfg in _tries:
+            try:
+                _h = _render_viz_process(addr, _cfg)
+            except Exception as _e:
+                _err = (f'<p style="color:#b91c1c">visualization {address} not renderable yet: '
+                        f'{type(_e).__name__}: {_e}</p>')
+                continue
+            return _h or f'<p style="color:#6b7280">{address} produced no HTML</p>'
+        return _err
+    for _scheme in _STATIC_VIZ_SCHEMES:
         if addr.startswith(_scheme):
             addr = addr[len(_scheme):]; break
     _p = _pl.Path(addr)
@@ -168,13 +250,21 @@ def _render_one(address, config, runs_db, study_yaml):
 #
 # Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
 
-# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (a plain, editable dict)
+# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (materialized from its `@composite_generator`)
 
-# _composite spec file for `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` not found under `viva_tumor_tcell/composites/` — skipped._
+spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment')
+describe_spec(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment)
+
+# === Edit parameters for this composite, then run the Run cell ===
+# ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment maps each tunable parameter to its current value (the generator's
+# defaults). Edit any entry; the Run cell rebuilds the composite with it.
+ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = dict(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['_overrides'])
+import json as _json; print(_json.dumps(ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment, indent=2, default=str))
+# e.g.:  ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['<parameter>'] = <value>
 
 # ### Run
 #
-# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+# _Set `STEPS`, then run. Each composite is built live from its (edited) spec above and run; a composite whose module processes aren't implemented yet reports the error instead of crashing. Set `RERUN = False` to skip re-simulating._
 
 # === Study: tumor-microenvironment ===
 STUDY = 'tumor-microenvironment'
@@ -182,7 +272,25 @@ STUDY_DIR = REPO / 'studies' / STUDY
 STUDY_YAML = str(STUDY_DIR / "study.yaml")
 RUNS_DB = str(STUDY_DIR / "runs.db")
 
-print("No recorded runs for this study; nothing to reproduce.")
+# This study has no *recorded* runs yet. RERUN builds its declared
+# composite(s) live and runs them; a composite whose module processes
+# are not implemented yet reports the error instead of crashing.
+STEPS_baseline = 100
+INTERVAL_baseline = 1.0
+
+if RERUN:
+    from process_bigraph import Composite
+    try:
+        with quiet():  # keep per-step stdout out of the notebook
+            _ov = ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment if 'ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment' in dir() else None  # edits from the panel cell, if any
+            spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment', _ov)
+            _comp = Composite({'state': spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['state']}, core=core)
+            _comp.run(STEPS_baseline)
+        print('ran', 'baseline', f'(viva_tumor_tcell.composites.microenvironment.tumor_microenvironment) for', STEPS_baseline, 'steps')
+    except Exception as _e:
+        print(f"baseline not runnable yet: {type(_e).__name__}: {_e}")
+else:
+    print("RERUN=False — not re-simulating.")
 
 # ### Visualizations
 #
@@ -199,42 +307,42 @@ def _save_viz(study, slug, html):
 
 
 # population_tumor
-_save_viz('tumor-microenvironment', 'population_tumor', _render_one('html:viz/population_tumor.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **population_tcell**
 
 # population_tcell
-_save_viz('tumor-microenvironment', 'population_tcell', _render_one('html:viz/population_tcell.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'population_tcell', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **divisions**
 
 # divisions
-_save_viz('tumor-microenvironment', 'divisions', _render_one('html:viz/divisions.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'divisions', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **deaths**
 
 # deaths
-_save_viz('tumor-microenvironment', 'deaths', _render_one('html:viz/deaths.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **snapshots**
 
 # snapshots
-_save_viz('tumor-microenvironment', 'snapshots', _render_one('html:viz/snapshots.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'snapshots', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_animation**
 
 # spatial_animation
-_save_viz('tumor-microenvironment', 'spatial_animation', _render_one('html:viz/spatial_animation.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'spatial_animation', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_large_scale**
 
 # spatial_large_scale
-_save_viz('tumor-microenvironment', 'spatial_large_scale', _render_one('html:viz/spatial_large_scale.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'spatial_large_scale', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **tumor_count_by_condition**
 
 # tumor_count_by_condition
-_save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('html:viz/tumor_count_by_condition.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -259,13 +367,21 @@ _save_viz('tumor-microenvironment', 'tumor_count_by_condition', _render_one('htm
 #
 # Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
 
-# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (a plain, editable dict)
+# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (materialized from its `@composite_generator`)
 
-# _composite spec file for `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` not found under `viva_tumor_tcell/composites/` — skipped._
+spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment')
+describe_spec(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment)
+
+# === Edit parameters for this composite, then run the Run cell ===
+# ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment maps each tunable parameter to its current value (the generator's
+# defaults). Edit any entry; the Run cell rebuilds the composite with it.
+ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = dict(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['_overrides'])
+import json as _json; print(_json.dumps(ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment, indent=2, default=str))
+# e.g.:  ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['<parameter>'] = <value>
 
 # ### Run
 #
-# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+# _Set `STEPS`, then run. Each composite is built live from its (edited) spec above and run; a composite whose module processes aren't implemented yet reports the error instead of crashing. Set `RERUN = False` to skip re-simulating._
 
 # === Study: tcell-exhaustion ===
 STUDY = 'tcell-exhaustion'
@@ -273,7 +389,25 @@ STUDY_DIR = REPO / 'studies' / STUDY
 STUDY_YAML = str(STUDY_DIR / "study.yaml")
 RUNS_DB = str(STUDY_DIR / "runs.db")
 
-print("No recorded runs for this study; nothing to reproduce.")
+# This study has no *recorded* runs yet. RERUN builds its declared
+# composite(s) live and runs them; a composite whose module processes
+# are not implemented yet reports the error instead of crashing.
+STEPS_baseline = 100
+INTERVAL_baseline = 1.0
+
+if RERUN:
+    from process_bigraph import Composite
+    try:
+        with quiet():  # keep per-step stdout out of the notebook
+            _ov = ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment if 'ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment' in dir() else None  # edits from the panel cell, if any
+            spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment', _ov)
+            _comp = Composite({'state': spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['state']}, core=core)
+            _comp.run(STEPS_baseline)
+        print('ran', 'baseline', f'(viva_tumor_tcell.composites.microenvironment.tumor_microenvironment) for', STEPS_baseline, 'steps')
+    except Exception as _e:
+        print(f"baseline not runnable yet: {type(_e).__name__}: {_e}")
+else:
+    print("RERUN=False — not re-simulating.")
 
 # ### Visualizations
 #
@@ -282,12 +416,12 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **pd1p_fraction**
 
 # pd1p_fraction
-_save_viz('tcell-exhaustion', 'pd1p_fraction', _render_one('html:viz/pd1p_fraction.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tcell-exhaustion', 'pd1p_fraction', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_75pct**
 
 # spatial_75pct
-_save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('html:viz/spatial_75pct.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -312,13 +446,21 @@ _save_viz('tcell-exhaustion', 'spatial_75pct', _render_one('html:viz/spatial_75p
 #
 # Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
 
-# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (a plain, editable dict)
+# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (materialized from its `@composite_generator`)
 
-# _composite spec file for `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` not found under `viva_tumor_tcell/composites/` — skipped._
+spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment')
+describe_spec(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment)
+
+# === Edit parameters for this composite, then run the Run cell ===
+# ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment maps each tunable parameter to its current value (the generator's
+# defaults). Edit any entry; the Run cell rebuilds the composite with it.
+ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = dict(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['_overrides'])
+import json as _json; print(_json.dumps(ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment, indent=2, default=str))
+# e.g.:  ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['<parameter>'] = <value>
 
 # ### Run
 #
-# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+# _Set `STEPS`, then run. Each composite is built live from its (edited) spec above and run; a composite whose module processes aren't implemented yet reports the error instead of crashing. Set `RERUN = False` to skip re-simulating._
 
 # === Study: phenotype-conversion ===
 STUDY = 'phenotype-conversion'
@@ -326,7 +468,25 @@ STUDY_DIR = REPO / 'studies' / STUDY
 STUDY_YAML = str(STUDY_DIR / "study.yaml")
 RUNS_DB = str(STUDY_DIR / "runs.db")
 
-print("No recorded runs for this study; nothing to reproduce.")
+# This study has no *recorded* runs yet. RERUN builds its declared
+# composite(s) live and runs them; a composite whose module processes
+# are not implemented yet reports the error instead of crashing.
+STEPS_baseline = 100
+INTERVAL_baseline = 1.0
+
+if RERUN:
+    from process_bigraph import Composite
+    try:
+        with quiet():  # keep per-step stdout out of the notebook
+            _ov = ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment if 'ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment' in dir() else None  # edits from the panel cell, if any
+            spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment', _ov)
+            _comp = Composite({'state': spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['state']}, core=core)
+            _comp.run(STEPS_baseline)
+        print('ran', 'baseline', f'(viva_tumor_tcell.composites.microenvironment.tumor_microenvironment) for', STEPS_baseline, 'steps')
+    except Exception as _e:
+        print(f"baseline not runnable yet: {type(_e).__name__}: {_e}")
+else:
+    print("RERUN=False — not re-simulating.")
 
 # ### Visualizations
 #
@@ -335,17 +495,17 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **ifng_field**
 
 # ifng_field
-_save_viz('phenotype-conversion', 'ifng_field', _render_one('html:viz/ifng_field.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'ifng_field', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **pdl1p_fraction**
 
 # pdl1p_fraction
-_save_viz('phenotype-conversion', 'pdl1p_fraction', _render_one('html:viz/pdl1p_fraction.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'pdl1p_fraction', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_conversion**
 
 # spatial_conversion
-_save_viz('phenotype-conversion', 'spatial_conversion', _render_one('html:viz/spatial_conversion.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('phenotype-conversion', 'spatial_conversion', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -370,13 +530,21 @@ _save_viz('phenotype-conversion', 'spatial_conversion', _render_one('html:viz/sp
 #
 # Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
 
-# **Composite `viva_tumor_tcell.composites.microenvironment.killing_assay`** — `spec_viva_tumor_tcell_composites_microenvironment_killing_assay` (a plain, editable dict)
+# **Composite `viva_tumor_tcell.composites.microenvironment.killing_assay`** — `spec_viva_tumor_tcell_composites_microenvironment_killing_assay` (materialized from its `@composite_generator`)
 
-# _composite spec file for `viva_tumor_tcell.composites.microenvironment.killing_assay` not found under `viva_tumor_tcell/composites/` — skipped._
+spec_viva_tumor_tcell_composites_microenvironment_killing_assay = materialize_composite('viva_tumor_tcell.composites.microenvironment.killing_assay')
+describe_spec(spec_viva_tumor_tcell_composites_microenvironment_killing_assay)
+
+# === Edit parameters for this composite, then run the Run cell ===
+# ov_viva_tumor_tcell_composites_microenvironment_killing_assay maps each tunable parameter to its current value (the generator's
+# defaults). Edit any entry; the Run cell rebuilds the composite with it.
+ov_viva_tumor_tcell_composites_microenvironment_killing_assay = dict(spec_viva_tumor_tcell_composites_microenvironment_killing_assay['_overrides'])
+import json as _json; print(_json.dumps(ov_viva_tumor_tcell_composites_microenvironment_killing_assay, indent=2, default=str))
+# e.g.:  ov_viva_tumor_tcell_composites_microenvironment_killing_assay['<parameter>'] = <value>
 
 # ### Run
 #
-# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+# _Set `STEPS`, then run. Each composite is built live from its (edited) spec above and run; a composite whose module processes aren't implemented yet reports the error instead of crashing. Set `RERUN = False` to skip re-simulating._
 
 # === Study: killing-assay-cytotoxicity ===
 STUDY = 'killing-assay-cytotoxicity'
@@ -384,7 +552,25 @@ STUDY_DIR = REPO / 'studies' / STUDY
 STUDY_YAML = str(STUDY_DIR / "study.yaml")
 RUNS_DB = str(STUDY_DIR / "runs.db")
 
-print("No recorded runs for this study; nothing to reproduce.")
+# This study has no *recorded* runs yet. RERUN builds its declared
+# composite(s) live and runs them; a composite whose module processes
+# are not implemented yet reports the error instead of crashing.
+STEPS_baseline = 100
+INTERVAL_baseline = 1.0
+
+if RERUN:
+    from process_bigraph import Composite
+    try:
+        with quiet():  # keep per-step stdout out of the notebook
+            _ov = ov_viva_tumor_tcell_composites_microenvironment_killing_assay if 'ov_viva_tumor_tcell_composites_microenvironment_killing_assay' in dir() else None  # edits from the panel cell, if any
+            spec_viva_tumor_tcell_composites_microenvironment_killing_assay = materialize_composite('viva_tumor_tcell.composites.microenvironment.killing_assay', _ov)
+            _comp = Composite({'state': spec_viva_tumor_tcell_composites_microenvironment_killing_assay['state']}, core=core)
+            _comp.run(STEPS_baseline)
+        print('ran', 'baseline', f'(viva_tumor_tcell.composites.microenvironment.killing_assay) for', STEPS_baseline, 'steps')
+    except Exception as _e:
+        print(f"baseline not runnable yet: {type(_e).__name__}: {_e}")
+else:
+    print("RERUN=False — not re-simulating.")
 
 # ### Visualizations
 #
@@ -393,27 +579,27 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **tumor_count_vs_control**
 
 # tumor_count_vs_control
-_save_viz('killing-assay-cytotoxicity', 'tumor_count_vs_control', _render_one('html:viz/tumor_count_vs_control.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'tumor_count_vs_control', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **population_tumor**
 
 # population_tumor
-_save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('html:viz/population_tumor.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'population_tumor', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **deaths**
 
 # deaths
-_save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('html:viz/deaths.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'deaths', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_killing**
 
 # spatial_killing
-_save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('html:viz/spatial_killing.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'spatial_killing', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # **spatial_killing_demo**
 
 # spatial_killing_demo
-_save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('html:viz/spatial_killing_demo.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #
@@ -439,13 +625,21 @@ _save_viz('killing-assay-cytotoxicity', 'spatial_killing_demo', _render_one('htm
 #
 # Each composite is a process-bigraph *document*: named processes (`_type: process`) bound to an `address`, wired by `inputs`/`outputs` ports over shared stores. For every composite below the first cell loads the spec into a plain **editable Python dict** and prints its structure; the second cell is a **control panel** listing every configuration value and per-process `interval` so you can tweak any of them. Your edits are read when the composite is built and run, in the **Run** section.
 
-# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (a plain, editable dict)
+# **Composite `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment`** — `spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment` (materialized from its `@composite_generator`)
 
-# _composite spec file for `viva_tumor_tcell.composites.microenvironment.tumor_microenvironment` not found under `viva_tumor_tcell/composites/` — skipped._
+spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment')
+describe_spec(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment)
+
+# === Edit parameters for this composite, then run the Run cell ===
+# ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment maps each tunable parameter to its current value (the generator's
+# defaults). Edit any entry; the Run cell rebuilds the composite with it.
+ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = dict(spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['_overrides'])
+import json as _json; print(_json.dumps(ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment, indent=2, default=str))
+# e.g.:  ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['<parameter>'] = <value>
 
 # ### Run
 #
-# _Set the runtime (`STEPS`) and step size (`INTERVAL`), then run. Each simulation builds the (edited) spec above and writes `runs.db`; the figures below read it. Set `RERUN = False` to skip re-simulating._
+# _Set `STEPS`, then run. Each composite is built live from its (edited) spec above and run; a composite whose module processes aren't implemented yet reports the error instead of crashing. Set `RERUN = False` to skip re-simulating._
 
 # === Study: efficacy-at-scale ===
 STUDY = 'efficacy-at-scale'
@@ -453,7 +647,25 @@ STUDY_DIR = REPO / 'studies' / STUDY
 STUDY_YAML = str(STUDY_DIR / "study.yaml")
 RUNS_DB = str(STUDY_DIR / "runs.db")
 
-print("No recorded runs for this study; nothing to reproduce.")
+# This study has no *recorded* runs yet. RERUN builds its declared
+# composite(s) live and runs them; a composite whose module processes
+# are not implemented yet reports the error instead of crashing.
+STEPS_baseline = 100
+INTERVAL_baseline = 1.0
+
+if RERUN:
+    from process_bigraph import Composite
+    try:
+        with quiet():  # keep per-step stdout out of the notebook
+            _ov = ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment if 'ov_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment' in dir() else None  # edits from the panel cell, if any
+            spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment = materialize_composite('viva_tumor_tcell.composites.microenvironment.tumor_microenvironment', _ov)
+            _comp = Composite({'state': spec_viva_tumor_tcell_composites_microenvironment_tumor_microenvironment['state']}, core=core)
+            _comp.run(STEPS_baseline)
+        print('ran', 'baseline', f'(viva_tumor_tcell.composites.microenvironment.tumor_microenvironment) for', STEPS_baseline, 'steps')
+    except Exception as _e:
+        print(f"baseline not runnable yet: {type(_e).__name__}: {_e}")
+else:
+    print("RERUN=False — not re-simulating.")
 
 # ### Visualizations
 #
@@ -462,7 +674,7 @@ print("No recorded runs for this study; nothing to reproduce.")
 # **tumor_count_at_scale**
 
 # tumor_count_at_scale
-_save_viz('efficacy-at-scale', 'tumor_count_at_scale', _render_one('html:viz/tumor_count_at_scale.html', {}, RUNS_DB, STUDY_YAML))
+_save_viz('efficacy-at-scale', 'tumor_count_at_scale', _render_one('', {}, RUNS_DB, STUDY_YAML))
 
 # ### Acceptance criteria
 #

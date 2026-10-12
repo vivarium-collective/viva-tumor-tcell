@@ -475,7 +475,17 @@
       try {
         var doc = frame.contentDocument;
         if (doc && doc.body && window.ResizeObserver && !frame._roFit) {
-          frame._roFit = new ResizeObserver(function () { fit(true); });
+          // Debounce the refit. A CONTINUOUS container resize — e.g. dragging the
+          // left rail, which reflows the content width every frame — would otherwise
+          // run fit() (a height:0 + scrollHeight measure + scroll-restore, i.e. two
+          // forced iframe reflows) on EVERY frame for EVERY visible embed, which is
+          // what makes the rail drag stutter. Coalesce to one fit ~80ms after the
+          // size settles; late async growth is still covered by the catch-up poll.
+          var _roFitT = 0;
+          frame._roFit = new ResizeObserver(function () {
+            if (_roFitT) clearTimeout(_roFitT);
+            _roFitT = setTimeout(function () { _roFitT = 0; fit(true); }, 80);
+          });
           frame._roFit.observe(doc.body);
           // Observe documentElement too: a tab switch / async chart render can
           // grow the document without changing body's observed box, so a
@@ -1154,7 +1164,11 @@
         var name = _esc(doc.name || doc.path || '(unnamed)');
         var path = doc.path ? ' <small class="muted">' + _esc(doc.path) + '</small>' : '';
         var dl = doc.path ? ' ' + _inputsDownloadLink(doc.path, 'Download') : '';
-        return '<li><strong>' + name + '</strong>' + path + dl + '</li>';
+        var desc = doc.description
+          ? '<div class="muted" style="font-size:0.85em;margin-top:2px">' +
+            _esc(doc.description) + '</div>'
+          : '';
+        return '<li><strong>' + name + '</strong>' + path + dl + desc + '</li>';
       }).join('') + '</ul>';
   }
 
@@ -1392,6 +1406,14 @@
       _inputsDatasetsHtml(glob.datasets);
     html += '<h4 style="margin:12px 0 4px">Repo-wide references</h4>' +
       _inputsRefsHtml(glob.references);
+    // Repo-wide expert docs — workspace.yaml top-level `expert_docs` (source
+    // dossiers / background docs the whole workspace draws on, not scoped to one
+    // investigation). Omit the header entirely when there are none so workspaces
+    // without any see no empty section.
+    if (glob.expert_docs && glob.expert_docs.length) {
+      html += '<h4 style="margin:12px 0 4px">Repo-wide expert docs</h4>' +
+        _inputsExpertDocsHtml(glob.expert_docs);
+    }
     html += '</div>';
 
     el.innerHTML = html;
@@ -2478,7 +2500,7 @@
         ' title="Double-click to zoom in on this ' + (p.kind || 'process') + '">' +
       '<div class="reg-card-row">' +
         '<div class="reg-card-main">' +
-          '<div class="reg-card-head"><strong class="reg-card-name">' + esc(p.name) + '</strong>' + _procKindBadge(p.kind) + _procBridgeBadge(p) + defaultBadge + _regUseBadge(p) + '</div>' +
+          '<div class="reg-card-head"><strong class="reg-card-name">' + esc(p.name) + '</strong>' + _procKindBadge(p.kind) + _procBridgeBadge(p) + defaultBadge + _regUseBadge(p) + _contractBadge(p.contract_audit) + '</div>' +
           '<code class="reg-card-addr">' + addr + '</code>' +
           (short ? '<p class="reg-card-desc">' + esc(short) + '</p>' : '') +
         '</div>' +
@@ -2516,7 +2538,7 @@
       }).join('');
     }
     var bodyHead =
-      '<div class="loom-body-head"><span class="loom-name">' + _esc(p.name) + '</span>' + _procKindBadge(kind) + _regUseBadge(p) + '</div>' +
+      '<div class="loom-body-head"><span class="loom-name">' + _esc(p.name) + '</span>' + _procKindBadge(kind) + _regUseBadge(p) + _contractBadge(p.contract_audit) + '</div>' +
       '<code class="loom-addr">' + _esc(p.address || kind) + '</code>' +
       (desc ? '<p class="loom-desc">' + _esc(desc) + '</p>' : '');
 
@@ -2608,6 +2630,58 @@
     });
   }
   window._toggleCompositeJson = _toggleCompositeJson;
+  // Contract-audit panel toggle — mirrors _toggleCompositeJson. The REAL
+  // composite audit is expensive (it builds the composite's core), so it's
+  // fetched lazily on first open from /api/composite-contract-audit and the
+  // header badge is back-patched with the real status once it lands.
+  function _toggleCompositeContract(btn) {
+    var card = btn.closest('.registry-entry-full'); if (!card) return;
+    var panel = card.querySelector('[data-role="composite-contract"]'); if (!panel) return;
+    var show = panel.hidden;
+    panel.hidden = !show;
+    btn.classList.toggle('active', show);
+    if (!show || panel._loaded) return;
+    panel._loaded = true;
+    var id = card.getAttribute('data-address');
+    var body = panel.querySelector('.pcard-contract-body');
+    if (body) body.innerHTML = '<span class="muted" style="font-size:0.85em">Auditing composite contracts… (building the core)</span>';
+    fetch('/api/composite-contract-audit?id=' + encodeURIComponent(id))
+      .then(function (r) { return r.json(); })
+      .then(function (a) {
+        if (body) {
+          body.innerHTML = (typeof _compositeContractPanelBody === 'function')
+            ? _compositeContractPanelBody(a)
+            : '<pre>' + _esc(JSON.stringify(a, null, 2)) + '</pre>';
+        }
+        panel._audit = a;
+        // Back-patch the header badge so the at-a-glance status is now real,
+        // not the coreless "contract n/a" stub.
+        try {
+          var badge = card.querySelector('.contract-badge');
+          if (badge && a && a.status && typeof _contractBadge === 'function') {
+            var tmp = document.createElement('div');
+            tmp.innerHTML = _contractBadge(a);
+            if (tmp.firstChild) badge.replaceWith(tmp.firstChild);
+          }
+        } catch (e) { /* badge back-patch is best-effort */ }
+      })
+      .catch(function (e) {
+        if (body) body.innerHTML = '<span class="loom-run-err">Audit failed: ' + _esc(String(e)) + '</span>';
+        panel._loaded = false;
+      });
+  }
+  window._toggleCompositeContract = _toggleCompositeContract;
+  // Process-card contract toggle — the per-process audit is already inline on
+  // the card (pre-rendered into the panel), so this just reveals it. No fetch,
+  // no badge back-patch (the header badge is already the real status).
+  function _toggleProcessContract(btn) {
+    var card = btn.closest('.registry-entry-full'); if (!card) return;
+    var panel = card.querySelector('[data-role="process-contract"]'); if (!panel) return;
+    var show = panel.hidden;
+    panel.hidden = !show;
+    btn.classList.toggle('active', show);
+  }
+  window._toggleProcessContract = _toggleProcessContract;
   function _copyCompositeJson(btn) {
     var panel = btn.closest('[data-role="composite-json"]');
     var pre = panel && panel.querySelector('.pcard-json-raw');
@@ -2794,9 +2868,10 @@
       '<div class="loom-card loom-card-stack loom-card-' + kind + '">' +
         '<div class="pcard-top">' +
           '<div class="pcard-header pcard-title" onclick="_pinCardTop(this)" title="Click to pin to top">' +
-            '<span class="loom-name">' + _esc(p.name) + '</span>' + kindBadge + _regUseBadge(p) +
+            '<span class="loom-name">' + _esc(p.name) + '</span>' + kindBadge + _regUseBadge(p) + _contractBadge(p.contract_audit) +
             '<code class="loom-addr">' + _esc(p.address || kind) + '</code>' +
             (/^(process|step)$/.test(kind) ? _processCodeBtn(p.address) : '') +
+            (p.contract_audit ? _processContractBtn() : '') +
             _cardPopoutBtn(p.address || kind, kind) +
           '</div>' +
           '<div class="pcard-summary">' +
@@ -2806,6 +2881,14 @@
               (desc ? '<p class="loom-desc pcard-desc-clamp" onclick="_pcardToggleDesc(this)" title="Click to expand / collapse">' + _esc(desc) + '</p>' : '') +
             '</div>' +
           '</div>' +
+          // Contract-audit panel — hidden until the header "§ Contract" button
+          // toggles it (mirrors the composite card). The per-process audit is
+          // already inline on the card, so it's pre-rendered here, not fetched.
+          (p.contract_audit
+            ? '<div class="pcard-json-view pcard-contract-view" data-role="process-contract" hidden>' +
+                '<div class="pcard-contract-body">' + _contractPanelBody(p.contract_audit) + '</div>' +
+              '</div>'
+            : '') +
         '</div>' +
         '<div class="pcard-acc">' +
           section('configure', 'Configure', '<span class="pcard-sec-count">' + nCfg + '</span><span class="pcard-config-chips" data-role="config-chips" hidden></span>', configBody, { resizable: true }) +
@@ -4101,6 +4184,62 @@
     _renderRegistryNewActions(kind);
   }
   window._setRegistryTab = _setRegistryTab;
+
+  // <find-candidates>
+  // Registry "Find candidates" panel: enter a face, list registered processes
+  // that fit it via POST /api/find-candidates. The renderer is pure.
+  function _renderCandidateList(result) {
+    var r = result || {};
+    var note = function (t) { return '<div class="fc-note fc-muted">' + t + '</div>'; };
+    if (r.status === 'unavailable') return note('contract matching unavailable');
+    if (r.status === 'error') return note('Error: ' + _esc(r.error || 'request failed'));
+    var cands = Array.isArray(r.candidates) ? r.candidates : [];
+    if (!cands.length) return note('no matching processes');
+    return '<ul class="fc-list">' + cands.map(function (c) {
+      var full = c.match === 'full';
+      var tag = '<span class="fc-tag ' + (full ? 'fc-full' : 'fc-near') + '">' +
+        (full ? 'full' : 'near-miss') + '</span>';
+      var fails = (!full && Array.isArray(c.fails) && c.fails.length)
+        ? '<ul class="fc-fails">' + c.fails.map(function (f) {
+            return '<li><code>' + _esc(f && f.condition) + '</code> ' + _esc(f && f.reason) + '</li>';
+          }).join('') + '</ul>'
+        : '';
+      return '<li class="fc-item"><code class="fc-addr">' + _esc(c.address) + '</code> ' + tag + fails + '</li>';
+    }).join('') + '</ul>';
+  }
+  window._renderCandidateList = _renderCandidateList;
+
+  function _parsePortSpec(text) {
+    var out = {};
+    String(text || '').split(',').forEach(function (tok) {
+      tok = tok.trim();
+      if (!tok) return;
+      var i = tok.indexOf(':');
+      if (i < 0) out[tok] = 'any';
+      else out[tok.slice(0, i).trim()] = tok.slice(i + 1).trim() || 'any';
+    });
+    return out;
+  }
+
+  function _findCandidates() {
+    var inEl = document.getElementById('fc-inputs');
+    var outEl = document.getElementById('fc-outputs');
+    var res = document.getElementById('fc-results');
+    if (!res) return;
+    res.innerHTML = '<div class="fc-note fc-muted">Searching&hellip;</div>';
+    var body = { inputs: _parsePortSpec(inEl && inEl.value), outputs: _parsePortSpec(outEl && outEl.value) };
+    try {
+      apiFetch('POST', '/api/find-candidates', body)
+        .then(function (r) { return r.json(); })
+        .then(function (j) { res.innerHTML = _renderCandidateList(j); })
+        .catch(function (e) { res.innerHTML = _renderCandidateList({ status: 'error', error: String(e && e.message || e) }); });
+    } catch (e) {
+      res.innerHTML = _renderCandidateList({ status: 'error', error: String(e && e.message || e) });
+    }
+  }
+  window._findCandidates = _findCandidates;
+  // </find-candidates>
+
 
   // Context-aware "+ New" buttons for the active sub-tab. Only process/step and
   // composite/generator are authorable from here (emitters/viz/types/tests are
@@ -9846,6 +9985,17 @@
         '<dl class="inv-brief-glossary">' + glossary.map(function(g) {
           return '<dt>' + _escInv(g.term || g.name || '') + '</dt><dd>' + _escInv(g.definition || g.def || '') + '</dd>';
         }).join('') + '</dl>' });
+    // Competing frameworks — the interpretive lenses this investigation
+    // adjudicates among (each {name, relation}); comparative framing for the
+    // rigor scorecard. Only shown when the investigation declares them.
+    var frameworks = Array.isArray(d.competing_frameworks) ? d.competing_frameworks : [];
+    if (frameworks.length)
+      tabs.push({ id:'frameworks', label:'Competing frameworks', html:
+        '<ul class="inv-brief-frameworks" style="margin:0;padding-left:18px">' + frameworks.map(function(f) {
+          f = f || {};
+          return '<li><strong>' + _escInv(f.name || '') + '</strong>' +
+            (f.relation ? ' <span class="muted">— ' + _escInv(f.relation) + '</span>' : '') + '</li>';
+        }).join('') + '</ul>' });
 
     if (tabs.length) {
       H.push('<div class="inv-brief-tabs" role="tablist">' + tabs.map(function(t, i) {
@@ -11346,13 +11496,6 @@
     }).catch(function (e) {
       _notify('Figures download failed: ' + e, { danger: true });
     });
-  };
-  // A study's ↓ notebook is its parent investigation's runnable notebook (there
-  // is no per-study notebook). In the graph the parent is the open investigation.
-  window._vivStudyNotebookFromCard = function (ev, slug) {
-    if (ev) ev.stopPropagation();
-    var inv = window._wsInvestigation || window._currentIset || '';
-    if (inv && window._vivNotebookFromCard) window._vivNotebookFromCard(ev, inv);
   };
   // ▶ run — launch a study's CURRENT baseline spec as a new run (live only).
   window._vivRunStudyFromRow = function (ev, slug) {

@@ -57,6 +57,166 @@
   }
   window._compositeBadge = _compositeBadge;
 
+  // contract-audit badge + panel (Phase 4B). Renders the 4A `contract_audit`.
+  // Pure string helpers; empty string when there is no contract_audit (emitters,
+  // pre-4A snapshots). All dynamic text goes through window._esc.
+  function _contractBadge(ca) {
+    if (!ca || !ca.status) return '';
+    var esc = _esc;
+    var map = {
+      pass:         { cls: 'contract-pass',       glyph: '✓', label: 'contract' },
+      fail:         { cls: 'contract-fail',       glyph: '✗', label: 'contract' },
+      incomplete:   { cls: 'contract-incomplete', glyph: '◐', label: 'contract' },
+      'not-declared': { cls: 'contract-none',     glyph: '—', label: 'no contract' },
+      unavailable:  { cls: 'contract-none',       glyph: '—', label: 'contract n/a' },
+      error:        { cls: 'contract-none',       glyph: '—', label: 'contract' }
+    };
+    var m = map[ca.status] || map.error;
+    var n = (ca.findings || []).filter(function (f) { return f && f.severity === 'error'; }).length;
+    var count = (ca.status === 'fail' && n) ? ' (' + n + ')' : '';
+    var title = 'Contract audit: ' + esc(ca.status) +
+      (typeof ca.grade === 'number' ? ' · ' + Math.round(ca.grade * 100) + '% declared' : '');
+    return '<span class="contract-badge ' + m.cls + '" title="' + title + '">' +
+      m.glyph + ' ' + esc(m.label) + count + '</span>';
+  }
+
+  function _contractPanelBody(ca) {
+    if (!ca || !ca.status) return '';
+    var esc = _esc;
+    var rows = [];
+    rows.push('<div class="contract-status-line">Status: <b>' + esc(ca.status) + '</b>' +
+      (typeof ca.grade === 'number' ? ' · completeness ' + Math.round(ca.grade * 100) + '%' : '') + '</div>');
+    // Explain the grade: typed ports (75%) + declared predicate conditions (25%),
+    // with the concrete pieces still missing. Mirrors the composite panel.
+    var c = ca.completeness;
+    if (c) {
+      rows.push('<div class="contract-sub muted">completeness = typed ports (75%) + declared predicate conditions (25%)</div>');
+      var parts = [];
+      if (typeof c.ports_total === 'number') {
+        var ok = c.ports_total && c.ports_typed === c.ports_total;
+        parts.push('<span class="cmpl-part ' + (ok ? 'is-ok' : 'is-gap') + '">ports ' +
+          c.ports_typed + '/' + c.ports_total + ' typed</span>');
+      }
+      parts.push('<span class="cmpl-part ' + (c.has_predicates ? 'is-ok' : 'is-gap') + '">predicates ' +
+        (c.n_predicates || 0) + '</span>');
+      rows.push('<div class="contract-cmpl">' + parts.join(' · ') + '</div>');
+      if ((c.missing || []).length) {
+        rows.push('<div class="contract-cmpl-missing">to reach 100%: ' +
+          c.missing.map(function (m) { return esc(m); }).join('; ') + '</div>');
+      }
+    }
+    function portRows(side, ports) {
+      var ks = Object.keys(ports || {});
+      if (!ks.length) return '';
+      return '<div class="contract-ports"><div class="contract-sub">' + esc(side) + '</div>' +
+        ks.map(function (p) {
+          var s = ports[p] || {}; var b = [];
+          if (s._min != null || s._max != null) b.push('[' + esc(s._min == null ? '' : s._min) + ', ' + esc(s._max == null ? '' : s._max) + ']');
+          if (s._units) b.push(esc(s._units));
+          return '<div class="contract-port"><code>' + esc(p) + '</code> ' + esc(s._type || '') + ' ' + b.join(' ') + '</div>';
+        }).join('') + '</div>';
+    }
+    if (ca.ports) { rows.push(portRows('inputs', ca.ports.inputs)); rows.push(portRows('outputs', ca.ports.outputs)); }
+    if ((ca.conditions || []).length) {
+      rows.push('<div class="contract-conditions"><div class="contract-sub">conditions</div>' +
+        ca.conditions.map(function (c) {
+          return '<div class="contract-cond"><b>' + esc(c.kind) + '</b> ' + esc(c.name || '') +
+            ': <code>' + esc(c.expr || '') + '</code></div>';
+        }).join('') + '</div>');
+    }
+    // Drop the library's own "completeness grade" info finding — the breakdown
+    // above already shows it, more usefully.
+    var findings = (ca.findings || []).filter(function (f) { return f.code !== 'completeness'; });
+    if (findings.length) {
+      rows.push('<div class="contract-findings"><div class="contract-sub">findings</div>' +
+        findings.map(function (f) {
+          return '<div class="contract-finding is-' + esc(f.severity) + '">' +
+            esc(f.severity) + ' <code>' + esc(f.code) + '</code> ' + esc(f.where || '') + ' — ' + esc(f.message || '') + '</div>';
+        }).join('') + '</div>');
+    }
+    return rows.filter(Boolean).join('');
+  }
+
+  // Render the REAL composite audit (from /api/composite-contract-audit):
+  // overall status, the Phase-2 wiring findings, then a per-process roll-up.
+  // Shape: {status, grade, n_processes, processes:[{name,status,grade,findings}],
+  //         wiring:{status, findings:[{severity,code,where,message}]}, notice?}.
+  function _compositeContractPanelBody(a) {
+    if (!a || !a.status) return '<div class="contract-status-line muted">No audit data.</div>';
+    var esc = _esc;
+    function findingRows(fs) {
+      return (fs || []).map(function (f) {
+        return '<div class="contract-finding is-' + esc(f.severity) + '">' +
+          esc(f.severity) + ' <code>' + esc(f.code || '') + '</code> ' +
+          esc(f.where || '') + ' — ' + esc(f.message || '') + '</div>';
+      }).join('');
+    }
+    // Per-process completeness is 75% typed ports + 25% declared predicates;
+    // render it as that arithmetic so the grade is self-explaining, and drop the
+    // library's own "completeness grade" info finding (we show it better here).
+    function completenessLine(c) {
+      if (!c) return '';
+      var parts = [];
+      if (typeof c.ports_total === 'number') {
+        var ok = c.ports_total && c.ports_typed === c.ports_total;
+        parts.push('<span class="cmpl-part ' + (ok ? 'is-ok' : 'is-gap') + '">ports ' +
+          c.ports_typed + '/' + c.ports_total + ' typed</span>');
+      }
+      parts.push('<span class="cmpl-part ' + (c.has_predicates ? 'is-ok' : 'is-gap') + '">predicates ' +
+        (c.n_predicates || 0) + '</span>');
+      var line = '<div class="contract-cmpl">' + parts.join(' · ') + '</div>';
+      if ((c.missing || []).length) {
+        line += '<div class="contract-cmpl-missing">to reach 100%: ' +
+          c.missing.map(function (m) { return esc(m); }).join('; ') + '</div>';
+      }
+      return line;
+    }
+    function nonCompletenessFindings(fs) {
+      return (fs || []).filter(function (f) { return f.code !== 'completeness'; });
+    }
+    var rows = [];
+    rows.push('<div class="contract-status-line">Status: <b>' + esc(a.status) + '</b>' +
+      (typeof a.grade === 'number' ? ' · completeness ' + Math.round(a.grade * 100) + '%' : '') +
+      (typeof a.n_processes === 'number' ? ' · ' + a.n_processes + ' process' + (a.n_processes === 1 ? '' : 'es') : '') +
+      '</div>');
+    rows.push('<div class="contract-sub muted">completeness = typed ports (75%) + declared predicate conditions (25%)</div>');
+    if (a.notice) rows.push('<div class="contract-sub muted">' + esc(a.notice) + '</div>');
+    // Composite-level "to improve" — the concrete, deduplicated actions.
+    if ((a.improve || []).length) {
+      rows.push('<div class="contract-improve"><div class="contract-sub">to improve</div>' +
+        a.improve.map(function (it) {
+          return '<div class="contract-improve-item">▸ ' + esc(it.action) +
+            ' <span class="muted">(' + it.n_processes + ' process' + (it.n_processes === 1 ? '' : 'es') + ')</span></div>';
+        }).join('') + '</div>');
+    }
+    // Phase 2 — wiring / interface
+    var w = a.wiring || {};
+    var wf = w.findings || [];
+    rows.push('<div class="contract-ports"><div class="contract-sub">wiring: <b>' +
+      esc(w.status || 'n/a') + '</b></div>' +
+      (wf.length ? findingRows(wf)
+                 : '<div class="contract-port muted">all shared stores type-consistent</div>') +
+      '</div>');
+    // Phase 1 — per-process roll-up
+    if ((a.processes || []).length) {
+      rows.push('<div class="contract-findings"><div class="contract-sub">processes</div>' +
+        a.processes.map(function (p) {
+          var extra = nonCompletenessFindings(p.findings);
+          return '<div class="contract-proc is-' + esc(p.status) + '">' +
+            '<code>' + esc(p.name) + '</code> <b>' + esc(p.status) + '</b>' +
+            (typeof p.grade === 'number' ? ' · ' + Math.round(p.grade * 100) + '%' : '') +
+            completenessLine(p.completeness) +
+            (extra.length ? findingRows(extra) : '') +
+            '</div>';
+        }).join('') + '</div>');
+    }
+    return rows.filter(Boolean).join('');
+  }
+
+  window._contractBadge = _contractBadge;
+  window._contractPanelBody = _contractPanelBody;
+  window._compositeContractPanelBody = _compositeContractPanelBody;
+
   // TIER of a figure composite — draft interface / executable compilation / live
   // topology rewrite — inferred from its display name (see the meta-modelers
   // naming). A small colored badge makes the role scannable at a glance.
@@ -116,7 +276,10 @@
     if (!id) return;
     var apiUrl = (window.DataSource && window.DataSource.apiUrl)
       ? window.DataSource.apiUrl.bind(window.DataSource) : function (p) { return p; };
-    var url = apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id);
+    // Pop-out lands on the graph too. The standalone loom already opens with the
+    // graph visible (no ?header=off), but pass ?graph=open explicitly so the intent
+    // survives any change to that default.
+    var url = apiUrl('/bigraph-loom/index.html') + '?id=' + encodeURIComponent(id) + '&graph=open';
     try { url = new URL(url, window.location.href).href; } catch (e) { /* keep relative */ }
     window.open(url, '_blank',
       'width=1180,height=940,menubar=no,toolbar=no,location=no,resizable=yes,scrollbars=yes');
@@ -131,17 +294,23 @@
   }
   window._cardMaximizeBtn = _cardMaximizeBtn;
 
-  function _positionMaximizedCard(card) {
-    // The card's fixed geometry is CSS-driven (see .pcard-maximized) off a single
-    // CSS var so a card re-render can't strip inline positioning. Here we only
-    // (a) publish the rail's right edge so the card clears the menu bar, and
-    // (b) grow the embedded loom to fill from its top to the bottom of the pane.
-    // In an embed IFRAME (Study→Model) there is no rail (it's in the parent,
-    // covered by the full-window iframe), so the card fills from the left edge.
+  // Publish ONLY the rail's right edge. The maximized card's left edge (and hence
+  // width) then tracks the rail purely via CSS (left: calc(var(--vw-rail-right) …)).
+  // Cheap: one rail-rect read + one var write, NO loom-iframe geometry read — so it
+  // is safe to run on every frame of a rail resize (see the rail ResizeObserver).
+  // In an embed IFRAME (Study→Model) there is no rail, so the card fills from x=0.
+  function _publishRailRight() {
     var inIframe = !!(window.parent && window.parent !== window);
     var rail = document.querySelector('.viv-rail');
     var railRight = inIframe ? 0 : (rail ? rail.getBoundingClientRect().right : 240);
     document.documentElement.style.setProperty('--vw-rail-right', railRight + 'px');
+  }
+  function _positionMaximizedCard(card) {
+    // (a) track the rail (cheap) and (b) grow the embedded loom to fill from its top
+    // to the bottom of the pane. The loom HEIGHT depends on the viewport + bottom
+    // docks, NOT on the rail WIDTH, so a rail resize only needs (a) — that heavy
+    // frame.getBoundingClientRect() reflow must stay off the per-frame rail path.
+    _publishRailRight();
     var frame = card.querySelector('.ccard-loom-frame');
     if (frame) {
       var fr = frame.getBoundingClientRect();
@@ -165,7 +334,12 @@
     document.body.classList.toggle('pcard-maximized', on);
     if (on) {
       btn.title = 'Restore (Esc)';
-      // Make sure the Explore section is open so the loom is actually visible.
+      // Fill-the-pane lands on the graph, not on the compact run+outputs strip:
+      // mark the embed so the loom lazy-mounts with its graph expanded
+      // (loom-embed.js turns data-graph="open" into ?graph=open). Then open the
+      // Explore section so the loom is actually visible.
+      var _lembed = card.querySelector('.ccard-loom-embed');
+      if (_lembed) _lembed.setAttribute('data-graph', 'open');
       var explore = card.querySelector('.pcard-sec-explore');
       if (explore && !explore.classList.contains('pcard-sec-open')) {
         var head = explore.querySelector('.pcard-sec-head');
@@ -176,15 +350,43 @@
       card._maxEsc = function (e) { if (e.key === 'Escape') _toggleCardMaximize(btn); };
       window.addEventListener('resize', card._maxReposition);
       document.addEventListener('keydown', card._maxEsc);
+      // The card's left edge clears the left rail via --vw-rail-right, but that var is
+      // only republished here — a window resize doesn't fire when the RAIL itself is
+      // resized (drag) or collapsed, so the maximized card would stop tracking the menu.
+      // Observe the rail and track it, but DON'T reflow the heavy maximized content
+      // (loom iframe + config panel) every frame — that's what made the drag stutter.
+      // During a rail-size change we only apply a compositor-only transform so the
+      // card's left edge follows live (no reflow); once the rail SETTLES we drop the
+      // transform and do the real width/loom re-fit exactly once.
+      var railEl = document.querySelector('.viv-rail');
+      if (railEl && window.ResizeObserver) {
+        var _settle = 0, _base = null;
+        card._maxRailRO = new ResizeObserver(function () {
+          var inIframe = !!(window.parent && window.parent !== window);
+          var rr = inIframe ? 0 : railEl.getBoundingClientRect().right;
+          if (_base === null) {
+            _base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vw-rail-right')) || rr;
+          }
+          card.style.transform = 'translateX(' + Math.round(rr - _base) + 'px)';   // cheap, no reflow
+          if (_settle) clearTimeout(_settle);
+          _settle = setTimeout(function () {
+            _settle = 0; _base = null;
+            card.style.transform = '';
+            if (card.classList.contains('pcard-maximized')) _publishRailRight();    // real re-fit, once
+          }, 90);
+        });
+        card._maxRailRO.observe(railEl);
+      }
       // Re-fit once the Explore section has finished expanding.
       setTimeout(function () { if (card.classList.contains('pcard-maximized')) _positionMaximizedCard(card); }, 120);
     } else {
       btn.title = 'Fill the pane — maximize (Esc to exit)';
-      ['position', 'top', 'left', 'width', 'height', 'zIndex'].forEach(function (p) { card.style[p] = ''; });
+      ['position', 'top', 'left', 'width', 'height', 'zIndex', 'transform'].forEach(function (p) { card.style[p] = ''; });
       var frame = card.querySelector('.ccard-loom-frame');
       if (frame) { frame.style.height = ''; frame.style.maxHeight = ''; }
       if (card._maxReposition) window.removeEventListener('resize', card._maxReposition);
       if (card._maxEsc) document.removeEventListener('keydown', card._maxEsc);
+      if (card._maxRailRO) { card._maxRailRO.disconnect(); card._maxRailRO = null; }
       card._maxReposition = card._maxEsc = null;
       card.scrollIntoView({ block: 'nearest' });
     }
@@ -208,6 +410,17 @@
   }
   window._compositeJsonBtn = _compositeJsonBtn;
 
+  // "§ Contract" — reveal the contract-audit panel (status/ports/conditions/
+  // findings) in a hidden inline view, toggled from the header exactly like the
+  // JSON button. Replaces the always-open accordion section. Rendered only when
+  // the card carries a contract_audit; the small header badge still shows the
+  // status at a glance. Inert where _toggleCompositeContract isn't defined.
+  function _compositeContractBtn() {
+    return '<button class="pcard-json-btn pcard-contract-btn" type="button" title="View this composite\'s contract audit" ' +
+      'onclick="event.stopPropagation();_toggleCompositeContract(this)">§ Contract</button>';
+  }
+  window._compositeContractBtn = _compositeContractBtn;
+
   // "</> Code" — open the code rail for this card. Header-styled variant, used by
   // the full cards; the grid/table views inline their own smaller buttons.
   function _compositeCodeBtn(id) {
@@ -221,6 +434,17 @@
       'onclick="event.stopPropagation();window.ProcessCode&&ProcessCode.open(\'' + _esc(address) + '\')">&lt;/&gt; Code</button>';
   }
   window._processCodeBtn = _processCodeBtn;
+
+  // "§ Contract" — reveal the process's contract-audit panel from the header,
+  // exactly like the composite card's § Contract button, replacing the always-
+  // open CONTRACT accordion section. The per-process audit is already inline on
+  // the card (p.contract_audit), so the toggle just shows a pre-rendered panel —
+  // no fetch. Inert where _toggleProcessContract isn't defined.
+  function _processContractBtn() {
+    return '<button class="pcard-json-btn pcard-contract-btn" type="button" title="View this process\'s contract audit" ' +
+      'onclick="event.stopPropagation();_toggleProcessContract(this)">§ Contract</button>';
+  }
+  window._processContractBtn = _processContractBtn;
 
   // "🔗 Share" — copy a shareable link to this composite's interactive
   // bigraph view. The onclick references _shareCompositeFromHeader
@@ -775,7 +999,7 @@
         ' title="Double-click to Explore (maximized bigraph)">' +
       '<div class="reg-card-row">' +
         '<div class="reg-card-main">' +
-          '<div class="reg-card-head"><strong class="reg-card-name">' + _esc(c.name) + '</strong>' + _compositeBadge() + _compositeTierBadge(c) + wsPill + '</div>' +
+          '<div class="reg-card-head"><strong class="reg-card-name">' + _esc(c.name) + '</strong>' + _compositeBadge() + _compositeTierBadge(c) + _contractBadge(c.contract_audit) + wsPill + '</div>' +
           '<code class="reg-card-addr">' + _esc(addr) + '</code>' +
           meta +
           (short ? '<p class="reg-card-desc">' + _esc(short) + '</p>' : '') +
@@ -939,7 +1163,7 @@
       '<div class="loom-card loom-card-stack loom-card-composite">' +
         '<div class="pcard-top">' +
           '<div class="pcard-header pcard-title" onclick="_pinCardTop(this)" ondblclick="event.stopPropagation();_maximizeCardFromHeader(this)" title="Click to pin to top · double-click to maximize">' +
-            '<span class="loom-name">' + _esc(c.name) + '</span>' + _compositeBadge() + _compositeTierBadge(c) + wsPill + roPill +
+            '<span class="loom-name">' + _esc(c.name) + '</span>' + _compositeBadge() + _compositeTierBadge(c) + _contractBadge(c.contract_audit) + wsPill + roPill +
             '<span class="pcard-runtarget" data-role="runtarget" title="checking where a Run will execute…" ' +
               'style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;' +
               'background:#eef1f4;color:#8a97a4;vertical-align:middle">Runs: …</span>' +
@@ -955,6 +1179,7 @@
             '<button class="pcard-hdr-collapse" type="button" onclick="event.stopPropagation();_toggleCardHeader(this)" title="Collapse this bar to maximize the view">⌃</button>' +
             _shareCompositeBtn() +
             _compositeJsonBtn() +
+            (c.contract_audit ? _compositeContractBtn() : '') +
             _compositeCodeBtn(c.id) +
             _cardMaximizeBtn() +
             _cardPopoutBtn(c.id, 'composite') +
@@ -975,6 +1200,17 @@
           '<div class="pcard-json-view" data-role="composite-json" hidden>' +
             '<div class="pcard-json-body"></div>' +
           '</div>' +
+          // Contract-audit panel — hidden until the header "§ Contract" button
+          // toggles it (mirrors the JSON view). The REAL composite audit (a
+          // per-process roll-up + wiring check) is expensive — it builds the
+          // composite's core — so it's fetched lazily on first open from
+          // /api/composite-contract-audit, not baked into the card. The card's
+          // own c.contract_audit is the coreless stub ("unavailable").
+          (c.contract_audit
+            ? '<div class="pcard-json-view pcard-contract-view" data-role="composite-contract" hidden>' +
+                '<div class="pcard-contract-body"></div>' +
+              '</div>'
+            : '') +
         '</div>' +
         '<div class="pcard-acc">' +
           // Card-owned Cloud-run status chip. When a Run dispatches to the Cloud
@@ -1007,6 +1243,8 @@
           // Run/Step · Outputs), lazy-mounted on first open. Graph collapsed at
           // first so run + outputs lead.
           _pcardSection('explore', 'Explore', '<span class="pcard-sec-hint">◆ Configure · run · outputs — click to open</span>', _compositeLoomExplore(c), { wide: true, feature: true }) +
+          // Contract audit now lives in a header-toggled panel (the "§ Contract"
+          // button + .pcard-contract-view above), not an always-open accordion.
         '</div>' +
       '</div>' +
     '</div>';
