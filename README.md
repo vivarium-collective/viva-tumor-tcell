@@ -15,7 +15,7 @@
 <!-- END:dashboard -->
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Read-only dashboard](https://img.shields.io/badge/dashboard-live-3b6fb6.svg)](https://vivarium-collective.github.io/viva-tumor-tcell/dashboard/)
+[![Read-only workbench](https://img.shields.io/badge/workbench-live-3b6fb6.svg)](https://vivarium-collective.github.io/viva-tumor-tcell/workbench/)
 [![Cell Systems 2024](https://img.shields.io/badge/paper-Cell%20Systems%202024-e8710a.svg)](https://doi.org/10.1016/j.cels.2024.03.004)
 [![process-bigraph](https://img.shields.io/badge/built%20on-process--bigraph-6f42c1.svg)](https://github.com/vivarium-collective/process-bigraph)
 
